@@ -1,0 +1,114 @@
+// Operator-config building blocks for a PermawebOS node running on Android.
+//
+// Everything here is an *operator* config: it is imported through the node's
+// config picker and merged over the measured base config on the next boot. Keys
+// the Android boot-config store reserves (store, match-index, priv-store,
+// arweave-index-store, preloaded-store, load-remote-devices, ...) are
+// deliberately absent — the store strips them and restores the measured base
+// values, so offering them here would only mislead.
+
+export const TUNNEL_PEER = "https://smoke.solutions";
+
+// Implementation the public tunnel router currently trusts. If a tunnel refuses
+// to register, check this first: the router repins it from time to time and a
+// stale value fails before a device is ever contacted.
+export const TUNNEL_IMPL = "SVKRgrshzPceeBdnknJNvR-m2zQ0mFYJvjMx0rSscW0";
+
+// Live zone, created 2026-07-31, admission gated on AndEE attestation.
+export const ZONES = [
+  {
+    id: "permawebos",
+    name: "permawebos",
+    peer: "https://qd5thgjy7vkcr6pp2hyvqgardhrc426tjjaobbnetv7ctwrdsqda.smoke.solutions",
+    ring: "isUcx_QUq_XY-Wdxk66D6FMgoyANEdsgV2na2VDZuTk",
+    note: "Template requires measurement-device: andee@1.0, so only genuine AndEE nodes are admitted.",
+  },
+];
+
+export const TUNNEL_TRUSTED = { "tunnel@1.0": TUNNEL_IMPL };
+
+// Remote devices the paid-bundler profile is assembled from. There is no
+// built-in bundler device in this build: ~bundler@1.0 comes up because the
+// lapee-p4-bootstrap start hook installs it, and these pins let it load.
+export const BUNDLER_NAME_RESOLVERS = [
+  {
+    "ao-payment@1.0": "7eAMYQ9PG8esiP-XIz1UoP78aI1htNgdtHqSbNm94X4",
+    "arweave-byte-pricing@1.0": "LMByssb9jjrc2DUQOucor4t0Zni0JOViiY6PZmGgHRU",
+    "bundler-settlement@1.0": "Nu-wM8Pdq4r6MTOKYFXnM6Jn0vAeGI732l-TsOcmazY",
+    "lapee-bundler-gc@1.0": "obuc_4WtzF1vHZT17s3iV07O-qzgQuSAfmjECpehcYQ",
+    "lapee-p4-bootstrap@1.0": "RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ",
+    "pricing-router@1.0": "UH8LNK2WMtgVBhQ6YCkk5dPyKbp3hHsb9pWCznVfYNA",
+    "simple-oracle@1.0": "SGIOFvYoRKYIj3bC9_3Ggv2n0lNCOoSRrWJyHUrKeKg",
+  },
+  { device: "arweave@2.9" },
+  { device: "b32-name@1.0" },
+  "G_gb7SAgogHMtmqycwaHaC6uC-CZ3akACdFv5PUaEE8~json@1.0/deserialize&target=data",
+];
+
+export const BUNDLER_TRUSTED = {
+  "ao-payment@1.0": "EJwu47Q0MK2DMjohTRX4kNYc7QLiXZmKq3s8QLTgTX4",
+  "7eAMYQ9PG8esiP-XIz1UoP78aI1htNgdtHqSbNm94X4": "EJwu47Q0MK2DMjohTRX4kNYc7QLiXZmKq3s8QLTgTX4",
+  "arweave-byte-pricing@1.0": "XE8fg4poXwCYdMJm4uDFhlC3RQ7FuOKDtb8gSxbakm0",
+  "LMByssb9jjrc2DUQOucor4t0Zni0JOViiY6PZmGgHRU": "XE8fg4poXwCYdMJm4uDFhlC3RQ7FuOKDtb8gSxbakm0",
+  "bundler-settlement@1.0": "oeJGtUCutNdfszNuwGs0r7VW_inRhuFl_nDYraIRWjk",
+  "Nu-wM8Pdq4r6MTOKYFXnM6Jn0vAeGI732l-TsOcmazY": "oeJGtUCutNdfszNuwGs0r7VW_inRhuFl_nDYraIRWjk",
+  "lapee-bundler-gc@1.0": "AKXhtDqE_U7L275NMuZAqLvJm6rREgHajkfez1ugLTk",
+  "obuc_4WtzF1vHZT17s3iV07O-qzgQuSAfmjECpehcYQ": "AKXhtDqE_U7L275NMuZAqLvJm6rREgHajkfez1ugLTk",
+  "lapee-p4-bootstrap@1.0": "0ER8jwnxByvfp0IXfgI1U_nypaq9x_Y0-NGbB68Ii0Y",
+  "RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ": "0ER8jwnxByvfp0IXfgI1U_nypaq9x_Y0-NGbB68Ii0Y",
+  "pricing-router@1.0": "e1T6L5u7dgj6nMkj3z7pUQjBrMWQdahm5xy5PV5tXOg",
+  "UH8LNK2WMtgVBhQ6YCkk5dPyKbp3hHsb9pWCznVfYNA": "e1T6L5u7dgj6nMkj3z7pUQjBrMWQdahm5xy5PV5tXOg",
+  "simple-oracle@1.0": "cEwxPCEk3WIYbWmeXOKlYsvLLBUKeB44P5F2y2FftaI",
+  "SGIOFvYoRKYIj3bC9_3Ggv2n0lNCOoSRrWJyHUrKeKg": "cEwxPCEk3WIYbWmeXOKlYsvLLBUKeB44P5F2y2FftaI",
+};
+
+export const BUNDLER_SIGNERS = [
+  "q5Fcm0NJ34-ss3E1R9dgjGKLLA0B-KYw0J_6U-Pck6o",
+  "aYDOU6kEcE3lK7aA-gTmUKHTbLlQnZZXWpv1_i_Uq1U",
+  "vZY2XY1RD9HIfWi8ift-1_DnHLDadZMWrufSh-_rKF0",
+];
+
+export const P4_BOOTSTRAP_DEVICE = "RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ";
+
+export const PROFILES = [
+  {
+    id: "plain",
+    name: "Plain node",
+    blurb: "Runs locally. No tunnel, no zone, not reachable from outside.",
+  },
+  {
+    id: "tunnel",
+    name: "Tunnelled node",
+    blurb: "Reachable on a public URL through the tunnel router.",
+    tunnel: true,
+  },
+  {
+    id: "zone-member",
+    name: "Zone member",
+    blurb: "Tunnelled, and joins a zone on boot. Admission is attested.",
+    tunnel: true,
+    zone: "join",
+  },
+  {
+    id: "zone-host",
+    name: "Zone host",
+    blurb: "Tunnelled, and may create a zone others attest into.",
+    tunnel: true,
+    zone: "host",
+  },
+  {
+    id: "bundler",
+    name: "Bundler",
+    blurb: "Paid-bundler profile behind a tunnel. Accepts items at ~bundler@1.0.",
+    tunnel: true,
+    bundler: true,
+  },
+  {
+    id: "bundler-zone",
+    name: "Bundler in a zone",
+    blurb: "Everything: bundler, tunnel, and zone membership.",
+    tunnel: true,
+    bundler: true,
+    zone: "join",
+  },
+];

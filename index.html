@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <title>PermawebOS Node Configurator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <h1>PermawebOS Node</h1>
+      <p class="sub">Configurator</p>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>Profile</h2>
+        <div id="profiles" class="profiles"></div>
+      </section>
+
+      <section class="card" id="tunnel-card" hidden>
+        <h2>Tunnel</h2>
+        <p class="hint">
+          The router gives this node a public URL derived from its address.
+          Without it, nothing outside the phone's network can reach the node.
+        </p>
+        <label>Router peer
+          <input id="tunnel-peer" type="url" inputmode="url" autocomplete="off" spellcheck="false" />
+        </label>
+        <label>Workers
+          <input id="tunnel-workers" type="number" min="1" max="32" inputmode="numeric" />
+        </label>
+        <details>
+          <summary>Trusted implementation</summary>
+          <p class="hint">
+            Repinned by the router occasionally. If registration fails before any
+            device is contacted, a stale value here is the usual cause.
+          </p>
+          <label>tunnel@1.0
+            <input id="tunnel-impl" type="text" autocomplete="off" spellcheck="false" />
+          </label>
+        </details>
+      </section>
+
+      <section class="card" id="zone-card" hidden>
+        <h2>Zone</h2>
+        <p class="hint" id="zone-hint"></p>
+        <label>Known zones
+          <select id="zone-select"></select>
+        </label>
+        <label>Zone name
+          <input id="zone-name" type="text" autocomplete="off" spellcheck="false" />
+        </label>
+        <label>Zone peer
+          <input id="zone-peer" type="url" inputmode="url" autocomplete="off" spellcheck="false" />
+        </label>
+        <p class="note" id="zone-note"></p>
+      </section>
+
+      <section class="card" id="bundler-card" hidden>
+        <h2>Bundler</h2>
+        <p class="hint">
+          There is no built-in bundler device. <code>~bundler@1.0</code> is
+          assembled at boot from remote devices pinned below.
+        </p>
+        <label>Beneficiary address
+          <input id="beneficiary" type="text" autocomplete="off" spellcheck="false"
+                 placeholder="43-character Arweave address" />
+        </label>
+        <p class="error" id="beneficiary-error" hidden>A beneficiary address is required.</p>
+        <label>Price
+          <input id="price" type="number" min="0" inputmode="numeric" />
+        </label>
+        <label>Max items per bundle
+          <input id="max-items" type="number" min="1" max="10000" inputmode="numeric" />
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Options</h2>
+        <label class="check">
+          <input id="disable-hyperbuddy" type="checkbox" />
+          <span>Do not serve the hyperbuddy UI
+            <small>Sets <code>default-index</code>. Note <code>render-index-page</code> looks
+            like this switch but does nothing in this build.</small>
+          </span>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Result</h2>
+        <p class="error" id="build-error" hidden></p>
+        <pre id="preview" class="preview" aria-live="polite"></pre>
+        <div class="actions">
+          <button id="download" type="button" class="primary">Download next.json</button>
+          <button id="copy" type="button">Copy</button>
+        </div>
+        <p class="note" id="copy-note" hidden>Copied.</p>
+        <details>
+          <summary>How to apply this</summary>
+          <ol class="steps">
+            <li>Download <code>next.json</code>.</li>
+            <li>Open PermawebOS Node and tap the config button.</li>
+            <li>Pick the file, then let the node restart.</li>
+          </ol>
+          <p class="hint">
+            Operator configs are merged over the node's measured base config.
+            Storage keys are reserved and cannot be changed this way; the node
+            restores its measured values for those.
+          </p>
+        </details>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>Produces an operator config only. Nothing is uploaded.</p>
+    </footer>
+
+    <script type="module" src="src/app.js"></script>
+  </body>
+</html>
