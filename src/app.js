@@ -7,6 +7,12 @@ const state = {
   profile: "tunnel",
 };
 
+// Inside the AndEE in-app browser the page can hand the config straight to the
+// node instead of making the operator download and re-pick a file.
+const bridge = typeof window !== "undefined" && window.AndeeBridge?.isAndee?.()
+  ? window.AndeeBridge
+  : null;
+
 function boot() {
   renderProfiles();
   el("tunnel-peer").value = TUNNEL_PEER;
@@ -16,7 +22,28 @@ function boot() {
   el("max-items").value = "1000";
   renderZoneOptions();
   bindEvents();
+  if (bridge) {
+    el("apply").hidden = false;
+    // Downloading into a WebView is awkward; applying directly is the point.
+    el("download").classList.remove("primary");
+  }
   applyProfile();
+}
+
+function applyToNode() {
+  if (!bridge || !lastConfigText) return;
+  const note = el("apply-note");
+  try {
+    const result = bridge.stageNextBootConfig(lastConfigText);
+    if (result === "staged") {
+      note.textContent = "Staged. Restart the node to apply.";
+    } else {
+      note.textContent = String(result);
+    }
+  } catch (exc) {
+    note.textContent = `Could not apply: ${exc?.message ?? exc}`;
+  }
+  note.hidden = false;
 }
 
 function renderProfiles() {
@@ -88,6 +115,7 @@ function bindEvents() {
   }
   el("download").addEventListener("click", download);
   el("copy").addEventListener("click", copy);
+  el("apply").addEventListener("click", applyToNode);
 }
 
 function applyProfile() {
