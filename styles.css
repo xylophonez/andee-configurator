@@ -22,6 +22,12 @@
 
 * { box-sizing: border-box; }
 
+html, body {
+  max-width: 100%;
+  /* Nothing here should ever scroll sideways on a phone. */
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -36,13 +42,25 @@ body {
 .bar h1 { margin: 0; font-size: 1.35rem; letter-spacing: -0.01em; }
 .bar .sub { margin: 2px 0 0; color: var(--dim); font-size: 0.95rem; }
 
-main { padding: 8px 14px 24px; display: grid; gap: 14px; max-width: 720px; margin: 0 auto; }
+main {
+  padding: 8px 14px 24px;
+  display: grid;
+  gap: 14px;
+  max-width: 720px;
+  margin: 0 auto;
+  /* Grid items default to min-width:auto, so one wide child (the JSON preview,
+     full of 43-character ids) stretches the whole page. */
+  min-width: 0;
+}
+main > * { min-width: 0; }
 
 .card {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 16px;
+  min-width: 0;
+  max-width: 100%;
 }
 .card h2 { margin: 0 0 10px; font-size: 1.02rem; letter-spacing: 0.01em; }
 
@@ -54,6 +72,7 @@ main { padding: 8px 14px 24px; display: grid; gap: 14px; max-width: 720px; margi
 
 .profile {
   display: grid;
+  min-width: 0;
   gap: 3px;
   text-align: left;
   padding: 12px 14px;
@@ -84,6 +103,8 @@ label:last-child { margin-bottom: 0; }
 
 input[type="text"], input[type="url"], input[type="number"], select {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 11px 12px;
   border-radius: 10px;
   border: 1px solid var(--line);
@@ -111,8 +132,14 @@ summary { cursor: pointer; color: var(--dim); font-size: 0.88rem; padding: 6px 0
   color: var(--ink);
   font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
   max-height: 320px;
-  overflow: auto;
-  white-space: pre;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-width: 100%;
+  /* Wrap rather than scroll sideways: on a phone a horizontal scroller inside a
+     vertical page is worse than a wrapped line, and ids are unbreakable. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
@@ -139,6 +166,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .steps li { margin-bottom: 4px; }
 
 code {
+  overflow-wrap: anywhere;
   font: 0.9em ui-monospace, SFMono-Regular, Menlo, monospace;
   background: color-mix(in srgb, var(--line) 60%, transparent);
   padding: 1px 5px;
