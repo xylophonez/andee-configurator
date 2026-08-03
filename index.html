@@ -3,122 +3,197 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1A1815" />
     <meta name="color-scheme" content="dark light" />
-    <title>PermawebOS Node Configurator</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>Configure AndEE</title>
+    <script>
+      (() => {
+        const resolved = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = resolved;
+      })();
+    </script>
+    <link rel="stylesheet" href="styles.css?v=20260803-ao-green" />
   </head>
   <body>
-    <header class="bar">
-      <h1>PermawebOS Node</h1>
-      <p class="sub">Configurator</p>
-    </header>
+    <div class="app-shell">
+      <main>
+        <section class="node-hero" aria-labelledby="node-title">
+          <andee-phone class="node-phone" status="disconnected" aria-label="Rotating wireframe AndEE phone"></andee-phone>
+          <div class="node-hero__copy" aria-live="polite">
+            <h2 id="node-title">No AndEE connected</h2>
+            <p id="node-detail">Open this page inside AndEE to connect to a node.</p>
+          </div>
+        </section>
 
-    <main>
-      <section class="card">
-        <h2>Profile</h2>
-        <div id="profiles" class="profiles"></div>
-      </section>
+        <section class="role-panel" aria-labelledby="role-heading">
+          <div class="section-heading">
+            <div>
+              <h2 id="role-heading">Node role</h2>
+              <p>Choose what this phone should do.</p>
+            </div>
+          </div>
+          <div class="custom-select" id="profile-picker">
+            <button class="select-row custom-select__trigger" id="profile-trigger" type="button"
+                    aria-haspopup="listbox" aria-expanded="false" aria-controls="profile-menu">
+              <span class="select-row__icon" id="profile-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 19v-7a8 8 0 0 1 16 0v7M8 19v-7a4 4 0 0 1 8 0v7M3 19h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span class="select-row__copy">
+                <span class="select-row__label" id="profile-name">Tunnelled node</span>
+                <span class="select-row__hint" id="profile-blurb">Reachable through the public tunnel router.</span>
+              </span>
+              <svg class="select-row__chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="custom-select__menu custom-select__menu--roles" id="profile-menu"
+                 role="listbox" aria-label="Node role" hidden></div>
+            <select id="profile-select" class="native-select" aria-hidden="true" tabindex="-1" hidden></select>
+          </div>
+        </section>
 
-      <section class="card" id="tunnel-card" hidden>
-        <h2>Tunnel</h2>
-        <p class="hint">
-          The router gives this node a public URL derived from its address.
-          Without it, nothing outside the phone's network can reach the node.
-        </p>
-        <label>Router peer
-          <input id="tunnel-peer" type="url" inputmode="url" autocomplete="off" spellcheck="false" />
-        </label>
-        <label>Workers
-          <input id="tunnel-workers" type="number" min="1" max="32" inputmode="numeric" />
-        </label>
-        <details>
-          <summary>Trusted implementation</summary>
-          <p class="hint">
-            Repinned by the router occasionally. If registration fails before any
-            device is contacted, a stale value here is the usual cause.
-          </p>
-          <label>tunnel@1.0
-            <input id="tunnel-impl" type="text" autocomplete="off" spellcheck="false" />
+        <section class="settings-group" id="tunnel-card" aria-labelledby="tunnel-heading" hidden>
+          <div class="section-heading">
+            <div>
+              <h2 id="tunnel-heading">Public access</h2>
+              <p>The tunnel gives this node a public URL.</p>
+            </div>
+          </div>
+          <div class="field-list">
+            <label class="field-row">
+              <span>Router</span>
+              <input id="tunnel-peer" type="url" inputmode="url" autocomplete="off" spellcheck="false" />
+            </label>
+            <div class="field-row field-row--compact">
+              <span>Workers</span>
+              <span class="number-stepper">
+                <button type="button" data-step-target="tunnel-workers" data-step-direction="down" aria-label="Decrease workers">−</button>
+                <input id="tunnel-workers" type="number" min="1" max="32" inputmode="numeric" aria-label="Workers" />
+                <button type="button" data-step-target="tunnel-workers" data-step-direction="up" aria-label="Increase workers">+</button>
+              </span>
+            </div>
+            <details class="subsettings">
+              <summary>Trusted implementation</summary>
+              <div class="subsettings__body">
+                <p>Used to verify the tunnel device. Update it if the router has repinned its implementation.</p>
+                <label class="stacked-field">tunnel@1.0
+                  <input id="tunnel-impl" type="text" autocomplete="off" spellcheck="false" />
+                </label>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section class="settings-group" id="zone-card" aria-labelledby="zone-heading" hidden>
+          <div class="section-heading">
+            <div>
+              <h2 id="zone-heading">Zone</h2>
+              <p id="zone-hint"></p>
+            </div>
+          </div>
+          <div class="field-list">
+            <div class="stacked-field">
+              <span>Known zone</span>
+              <div class="custom-select custom-select--field" id="zone-picker">
+                <button class="field-select-trigger custom-select__trigger" id="zone-trigger" type="button"
+                        aria-haspopup="listbox" aria-expanded="false" aria-controls="zone-menu">
+                  <span id="zone-selected-label">permawebos</span>
+                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 8 3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="custom-select__menu" id="zone-menu" role="listbox" aria-label="Known zone" hidden></div>
+                <select id="zone-select" class="native-select" aria-hidden="true" tabindex="-1" hidden></select>
+              </div>
+            </div>
+            <label class="stacked-field">Zone name
+              <input id="zone-name" type="text" autocomplete="off" spellcheck="false" />
+            </label>
+            <label class="stacked-field">Zone peer
+              <input id="zone-peer" type="url" inputmode="url" autocomplete="off" spellcheck="false" />
+            </label>
+            <p class="inline-note" id="zone-note"></p>
+          </div>
+        </section>
+
+        <section class="settings-group" id="bundler-card" aria-labelledby="bundler-heading" hidden>
+          <div class="section-heading">
+            <div>
+              <h2 id="bundler-heading">Bundler</h2>
+              <p>Accept and settle paid items through <code>~bundler@1.0</code>.</p>
+            </div>
+          </div>
+          <div class="field-list">
+            <label class="stacked-field">Beneficiary address
+              <input id="beneficiary" type="text" autocomplete="off" spellcheck="false" placeholder="43-character Arweave address" />
+            </label>
+            <p class="error" id="beneficiary-error" hidden>A beneficiary address is required.</p>
+            <div class="field-row field-row--compact">
+              <span>Price</span>
+              <span class="number-stepper">
+                <button type="button" data-step-target="price" data-step-direction="down" aria-label="Decrease price">−</button>
+                <input id="price" type="number" min="0" inputmode="numeric" aria-label="Price" />
+                <button type="button" data-step-target="price" data-step-direction="up" aria-label="Increase price">+</button>
+              </span>
+            </div>
+            <div class="field-row field-row--compact">
+              <span>Max items</span>
+              <span class="number-stepper">
+                <button type="button" data-step-target="max-items" data-step-direction="down" aria-label="Decrease max items">−</button>
+                <input id="max-items" type="number" min="1" max="10000" inputmode="numeric" aria-label="Max items" />
+                <button type="button" data-step-target="max-items" data-step-direction="up" aria-label="Increase max items">+</button>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-group" aria-labelledby="interface-heading">
+          <div class="section-heading">
+            <div>
+              <h2 id="interface-heading">Interface</h2>
+              <p>Control what the node serves locally.</p>
+            </div>
+          </div>
+          <label class="switch-row">
+            <span class="switch-row__copy">
+              <span>Hyperbuddy UI</span>
+              <small>Serve the node interface at its default address.</small>
+            </span>
+            <input id="disable-hyperbuddy" type="checkbox" />
+            <span class="switch" aria-hidden="true"></span>
           </label>
-        </details>
-      </section>
+        </section>
 
-      <section class="card" id="zone-card" hidden>
-        <h2>Zone</h2>
-        <p class="hint" id="zone-hint"></p>
-        <label>Known zones
-          <select id="zone-select"></select>
-        </label>
-        <label>Zone name
-          <input id="zone-name" type="text" autocomplete="off" spellcheck="false" />
-        </label>
-        <label>Zone peer
-          <input id="zone-peer" type="url" inputmode="url" autocomplete="off" spellcheck="false" />
-        </label>
-        <p class="note" id="zone-note"></p>
-      </section>
+        <section class="config-panel" aria-labelledby="config-heading">
+          <details>
+            <summary>
+              <span>
+                <strong id="config-heading">Generated configuration</strong>
+                <small>Review or copy the operator JSON.</small>
+              </span>
+              <button id="copy-inline" class="config-copy-button" type="button" aria-label="Copy generated configuration" title="Copy JSON">
+                <svg class="config-copy-button__copy" viewBox="0 0 20 20" aria-hidden="true"><rect x="6.5" y="6.5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 6.5V5A1.5 1.5 0 0 0 12 3.5H5A1.5 1.5 0 0 0 3.5 5v7A1.5 1.5 0 0 0 5 13.5h1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <svg class="config-copy-button__check" viewBox="0 0 20 20" aria-hidden="true"><path d="m4.5 10 3.4 3.4 7.6-7.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <svg class="config-panel__chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </summary>
+            <div class="config-panel__body">
+              <p class="error" id="build-error" hidden></p>
+              <pre id="preview" class="preview" role="button" tabindex="0" aria-label="Copy generated configuration" aria-live="polite" title="Copy JSON"></pre>
+            </div>
+          </details>
+        </section>
 
-      <section class="card" id="bundler-card" hidden>
-        <h2>Bundler</h2>
-        <p class="hint">
-          There is no built-in bundler device. <code>~bundler@1.0</code> is
-          assembled at boot from remote devices pinned below.
-        </p>
-        <label>Beneficiary address
-          <input id="beneficiary" type="text" autocomplete="off" spellcheck="false"
-                 placeholder="43-character Arweave address" />
-        </label>
-        <p class="error" id="beneficiary-error" hidden>A beneficiary address is required.</p>
-        <label>Price
-          <input id="price" type="number" min="0" inputmode="numeric" />
-        </label>
-        <label>Max items per bundle
-          <input id="max-items" type="number" min="1" max="10000" inputmode="numeric" />
-        </label>
-      </section>
-
-      <section class="card">
-        <h2>Options</h2>
-        <label class="check">
-          <input id="disable-hyperbuddy" type="checkbox" />
-          <span>Do not serve the hyperbuddy UI
-            <small>Sets <code>default-index</code>. Note <code>render-index-page</code> looks
-            like this switch but does nothing in this build.</small>
-          </span>
-        </label>
-      </section>
-
-      <section class="card">
-        <h2>Result</h2>
-        <p class="error" id="build-error" hidden></p>
-        <pre id="preview" class="preview" aria-live="polite"></pre>
-        <div class="actions">
-          <button id="apply" type="button" class="primary" hidden>Apply to this node</button>
-          <button id="download" type="button" class="primary">Download next.json</button>
-          <button id="copy" type="button">Copy</button>
+        <div class="action-area">
+          <button id="apply" type="button" class="button button--primary" hidden>Apply to this phone</button>
+          <button id="download" type="button" class="button button--primary">
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M10 3.5v8m0 0 3-3m-3 3-3-3M4.5 14v1.5h11V14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>Download next.json</span>
+          </button>
+          <p class="inline-note" id="apply-note" hidden></p>
+          <p class="privacy-note">Generated on this device. Nothing is uploaded.</p>
         </div>
-        <p class="note" id="apply-note" hidden></p>
-        <p class="note" id="copy-note" hidden>Copied.</p>
-        <details>
-          <summary>How to apply this</summary>
-          <ol class="steps">
-            <li>Download <code>next.json</code>.</li>
-            <li>Open PermawebOS Node and tap the config button.</li>
-            <li>Pick the file, then let the node restart.</li>
-          </ol>
-          <p class="hint">
-            Operator configs are merged over the node's measured base config.
-            Storage keys are reserved and cannot be changed this way; the node
-            restores its measured values for those.
-          </p>
-        </details>
-      </section>
-    </main>
+      </main>
+    </div>
 
-    <footer class="foot">
-      <p>Produces an operator config only. Nothing is uploaded.</p>
-    </footer>
-
-    <script type="module" src="src/app.js"></script>
+    <script type="module" src="src/app.js?v=20260803-tunnel-icon"></script>
   </body>
 </html>
