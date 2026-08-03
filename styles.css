@@ -392,6 +392,202 @@ main {
   height: 1rem;
 }
 
+.layer-stack-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
+}
+
+.advanced-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.2rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.advanced-toggle:hover,
+.advanced-toggle[aria-pressed="true"] {
+  color: var(--paper);
+}
+
+.advanced-toggle__switch {
+  position: relative;
+  width: 1.8rem;
+  height: 1.05rem;
+  border: 1px solid var(--neutral-4);
+  border-radius: 999px;
+  background: var(--neutral-5);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.advanced-toggle__switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--paper);
+  transition: transform 120ms ease;
+}
+
+.advanced-toggle[aria-pressed="true"] .advanced-toggle__switch {
+  border-color: color-mix(in srgb, var(--positive) 50%, var(--neutral-4));
+  background: var(--positive);
+}
+
+.advanced-toggle[aria-pressed="true"] .advanced-toggle__switch::after {
+  transform: translateX(0.72rem);
+  background: var(--neutral-1);
+}
+
+.layer-stack {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+  list-style: none;
+}
+
+.layer-stack__empty {
+  padding: 0.9rem;
+  border: 1px dashed var(--neutral-4);
+  border-radius: var(--radius-input);
+  color: var(--text-tertiary);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.layer-item {
+  display: grid;
+  grid-template-columns: 1rem 2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  min-height: 4rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid var(--neutral-3);
+  border-radius: var(--radius-input);
+  background: var(--neutral-2);
+  cursor: grab;
+}
+
+.layer-item:active {
+  cursor: grabbing;
+}
+
+.layer-item.is-dragging {
+  opacity: 0.45;
+}
+
+.layer-item__grip {
+  color: var(--text-tertiary);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.layer-item__icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--neutral-3);
+  color: var(--positive);
+}
+
+.layer-item__icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.layer-item__copy {
+  min-width: 0;
+}
+
+.layer-item__copy strong,
+.layer-item__copy small {
+  display: block;
+}
+
+.layer-item__copy strong {
+  overflow: hidden;
+  font-size: 0.82rem;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layer-item__copy small {
+  margin-top: 0.1rem;
+  color: var(--text-tertiary);
+  font-size: 0.68rem;
+}
+
+.layer-item__controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1.9rem);
+  overflow: hidden;
+  border: 1px solid var(--neutral-4);
+  border-radius: var(--radius-lg);
+  background: var(--neutral-1);
+}
+
+.layer-item__controls button {
+  width: 1.9rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--neutral-3);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.layer-item__controls button:first-child {
+  border-left: 0;
+}
+
+.layer-item__controls button:hover:not(:disabled) {
+  background: var(--neutral-3);
+  color: var(--paper);
+}
+
+.layer-item__controls button:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.layer-item__details {
+  display: grid;
+  grid-column: 2 / -1;
+  gap: 0.35rem;
+  padding: 0.65rem 0.7rem;
+  border-radius: var(--radius-lg);
+  background: var(--neutral-1);
+}
+
+.layer-item__details small {
+  color: var(--text-tertiary);
+  font-size: 0.66rem;
+}
+
+.layer-item__details code {
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
 .field-select-trigger {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 1.2rem;
@@ -538,6 +734,36 @@ main {
 .number-stepper button:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  min-height: 2.75rem;
+  overflow: hidden;
+  border: 1px solid var(--neutral-4);
+  border-radius: var(--radius-lg);
+  background: var(--neutral-1);
+}
+
+.segmented-control button {
+  min-width: 0;
+  padding: 0 0.7rem;
+  border: 0;
+  border-left: 1px solid var(--neutral-3);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.segmented-control button:first-child {
+  border-left: 0;
+}
+
+.segmented-control button[aria-pressed="true"] {
+  background: var(--neutral-3);
+  color: var(--paper);
 }
 
 .stacked-field {

@@ -93,6 +93,36 @@ export const OUROBOROS_TRUSTED = {
 // Same publisher set as the bundler devices; andock is signed by it too.
 export const OUROBOROS_SIGNERS = BUNDLER_SIGNERS;
 
+// Independent configuration layers shown by the configurator. Unlike the
+// legacy role presets below, these are deliberately additive: operators can
+// enable any combination and control their application order.
+export const CAPABILITIES = [
+  {
+    id: "tunnel",
+    name: "Public access",
+    blurb: "Give the node a public URL through the tunnel router.",
+    adds: ["on.start: tunnel connect", "trusted-devices: tunnel@1.0"],
+  },
+  {
+    id: "zone",
+    name: "Zone",
+    blurb: "Join an attested zone or host one for other nodes.",
+    adds: ["zone-allow or zone-init-allow"],
+  },
+  {
+    id: "bundler",
+    name: "Bundler",
+    blurb: "Accept and settle paid items through ~bundler@1.0.",
+    adds: ["on.start: P4 bootstrap", "bundler-* and payment settings", "router-opts and device pins"],
+  },
+  {
+    id: "ouroboros",
+    name: "Ouroboros",
+    blurb: "Serve Linux execution tools through ~andock@1.0.",
+    adds: ["andock@1.0 resolver and trust pins", "Ouroboros execution profile"],
+  },
+];
+
 export const PROFILES = [
   {
     id: "plain",

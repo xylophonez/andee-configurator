@@ -12,7 +12,7 @@
         document.documentElement.dataset.theme = resolved;
       })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260803-ao-green" />
+    <link rel="stylesheet" href="styles.css?v=20260803-additive-layers" />
   </head>
   <body>
     <div class="app-shell">
@@ -25,29 +25,36 @@
           </div>
         </section>
 
-        <section class="role-panel" aria-labelledby="role-heading">
+        <section class="role-panel" aria-labelledby="capabilities-heading">
           <div class="section-heading">
             <div>
-              <h2 id="role-heading">Node role</h2>
-              <p>Choose what this phone should do.</p>
+              <h2 id="capabilities-heading">Capabilities</h2>
+              <p>Add features to this node. Selected layers combine instead of replacing one another.</p>
             </div>
           </div>
-          <div class="custom-select" id="profile-picker">
-            <button class="select-row custom-select__trigger" id="profile-trigger" type="button"
-                    aria-haspopup="listbox" aria-expanded="false" aria-controls="profile-menu">
-              <span class="select-row__icon" id="profile-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none"><path d="M4 19v-7a8 8 0 0 1 16 0v7M8 19v-7a4 4 0 0 1 8 0v7M3 19h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="custom-select" id="capability-picker">
+            <button class="select-row custom-select__trigger" id="capability-trigger" type="button"
+                    aria-haspopup="listbox" aria-expanded="false" aria-controls="capability-menu">
+              <span class="select-row__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="m5 7 7-3.5L19 7l-7 3.5L5 7Zm0 5 7 3.5 7-3.5M5 17l7 3.5 7-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </span>
               <span class="select-row__copy">
-                <span class="select-row__label" id="profile-name">Tunnelled node</span>
-                <span class="select-row__hint" id="profile-blurb">Reachable through the public tunnel router.</span>
+                <span class="select-row__label" id="capability-count">1 capability</span>
+                <span class="select-row__hint" id="capability-summary">Public access</span>
               </span>
               <svg class="select-row__chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <div class="custom-select__menu custom-select__menu--roles" id="profile-menu"
-                 role="listbox" aria-label="Node role" hidden></div>
-            <select id="profile-select" class="native-select" aria-hidden="true" tabindex="-1" hidden></select>
+            <div class="custom-select__menu custom-select__menu--roles" id="capability-menu"
+                 role="listbox" aria-label="Node capabilities" aria-multiselectable="true" hidden></div>
           </div>
+          <div class="layer-stack-heading">
+            <span>Applied layers</span>
+            <button id="advanced-toggle" class="advanced-toggle" type="button" aria-pressed="false">
+              <span>More info</span>
+              <span class="advanced-toggle__switch" aria-hidden="true"></span>
+            </button>
+          </div>
+          <ol class="layer-stack" id="layer-stack" aria-label="Applied capability order" aria-live="polite"></ol>
         </section>
 
         <section class="settings-group" id="tunnel-card" aria-labelledby="tunnel-heading" hidden>
@@ -90,6 +97,13 @@
             </div>
           </div>
           <div class="field-list">
+            <div class="field-row field-row--compact">
+              <span>Mode</span>
+              <span class="segmented-control" id="zone-mode-control" role="group" aria-label="Zone mode">
+                <button type="button" data-zone-mode="join" aria-pressed="true">Join</button>
+                <button type="button" data-zone-mode="host" aria-pressed="false">Host</button>
+              </span>
+            </div>
             <div class="stacked-field">
               <span>Known zone</span>
               <div class="custom-select custom-select--field" id="zone-picker">
@@ -194,6 +208,6 @@
       </main>
     </div>
 
-    <script type="module" src="src/app.js?v=20260803-tunnel-icon"></script>
+    <script type="module" src="src/app.js?v=20260803-additive-layers"></script>
   </body>
 </html>

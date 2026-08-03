@@ -134,3 +134,32 @@ test("ouroboros and bundler combine without duplicating a resolver", () => {
   // The bundler owns lapee-profile when both are selected.
   assert.equal(config["lapee-profile"], "aopayment-bundler-p4-paid-remote");
 });
+
+test("capabilities are additive instead of exclusive", () => {
+  const config = buildConfig({
+    ...base,
+    layers: ["tunnel", "zone", "ouroboros", "bundler"],
+    zoneMode: "join",
+  });
+  assert.ok(config.on.start.some((hook) => hook.device === "tunnel@1.0"));
+  assert.ok(config.on.start.some((hook) => hook.device === "RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ"));
+  assert.deepEqual(config["zone-allow"], { [zone.name]: zone.peer });
+  assert.equal(config["trusted-devices"]["andock@1.0"], ANDOCK_IMPL);
+  assert.equal(config["bundler-beneficiary"], base.beneficiary);
+  assert.equal(config["andee-profile-source"], "andee-configurator/tunnel+zone+ouroboros+bundler");
+});
+
+test("layer order controls start-hook order", () => {
+  const config = buildConfig({ ...base, layers: ["bundler", "tunnel"] });
+  assert.deepEqual(
+    config.on.start.map((hook) => hook.device),
+    ["RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ", "tunnel@1.0"],
+  );
+});
+
+test("a zone layer may host without forcing public access", () => {
+  const config = buildConfig({ ...base, layers: ["zone"], zoneMode: "host" });
+  assert.equal(config["zone-init-allow"], true);
+  assert.equal(config.on, undefined);
+  assert.equal(config["trusted-devices"], undefined);
+});

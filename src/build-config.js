@@ -6,6 +6,7 @@ import {
   BUNDLER_NAME_RESOLVERS,
   BUNDLER_SIGNERS,
   BUNDLER_TRUSTED,
+  CAPABILITIES,
   OUROBOROS_NAME_RESOLVERS,
   OUROBOROS_SIGNERS,
   OUROBOROS_TRUSTED,
@@ -35,9 +36,15 @@ export function profileById(id) {
   return PROFILES.find((p) => p.id === id) ?? PROFILES[0];
 }
 
+export function capabilityById(id) {
+  return CAPABILITIES.find((capability) => capability.id === id);
+}
+
 /**
  * @param {object} choices
- * @param {string} choices.profile
+ * @param {string[]} [choices.layers] ordered additive capability IDs
+ * @param {string} [choices.profile] legacy exclusive preset ID
+ * @param {"join"|"host"} [choices.zoneMode]
  * @param {string} [choices.tunnelPeer]
  * @param {number} [choices.tunnelWorkers]
  * @param {string} [choices.tunnelImpl]
@@ -49,90 +56,95 @@ export function profileById(id) {
  * @param {boolean} [choices.disableHyperbuddy]
  */
 export function buildConfig(choices) {
-  const profile = profileById(choices.profile);
+  const legacyProfile = choices.profile ? profileById(choices.profile) : null;
+  const layers = normalizeLayers(
+    Array.isArray(choices.layers) ? choices.layers : layersForProfile(legacyProfile),
+  );
+  const zoneMode = choices.zoneMode || legacyProfile?.zone || "join";
+  const activeLayers = new Set(layers);
   const config = {};
   const startHooks = [];
   const trusted = {};
   const nameResolverLists = [];
 
-  if (profile.tunnel) {
-    const peer = (choices.tunnelPeer || "").trim();
-    if (!peer) throw new Error("Tunnel peer is required for this profile.");
-    startHooks.push({
-      device: "tunnel@1.0",
-      method: "POST",
-      path: "connect",
-      peer,
-      workers: clampInt(choices.tunnelWorkers, 1, 32, 3),
-      hook: { result: "ignore" },
-    });
-    Object.assign(trusted, TUNNEL_TRUSTED);
-    if (choices.tunnelImpl && choices.tunnelImpl.trim()) {
-      trusted["tunnel@1.0"] = choices.tunnelImpl.trim();
+  for (const layer of layers) {
+    if (layer === "tunnel") {
+      const peer = (choices.tunnelPeer || "").trim();
+      if (!peer) throw new Error("Tunnel peer is required when Public access is enabled.");
+      startHooks.push({
+        device: "tunnel@1.0",
+        method: "POST",
+        path: "connect",
+        peer,
+        workers: clampInt(choices.tunnelWorkers, 1, 32, 3),
+        hook: { result: "ignore" },
+      });
+      Object.assign(trusted, TUNNEL_TRUSTED);
+      if (choices.tunnelImpl && choices.tunnelImpl.trim()) {
+        trusted["tunnel@1.0"] = choices.tunnelImpl.trim();
+      }
     }
-  }
 
-  if (profile.zone === "join") {
-    const name = (choices.zoneName || "").trim();
-    const peer = (choices.zonePeer || "").trim();
-    if (!name || !peer) throw new Error("Zone name and peer are both required to join a zone.");
-    config["zone-allow"] = { [name]: peer };
-  }
+    if (layer === "zone") {
+      const name = (choices.zoneName || "").trim();
+      const peer = (choices.zonePeer || "").trim();
+      if (zoneMode === "host") {
+        config["zone-init-allow"] = true;
+        // Rejoining your own zone only makes sense once it exists at a known URL.
+        if (name && peer) config["zone-allow"] = { [name]: peer };
+      } else {
+        if (!name || !peer) throw new Error("Zone name and peer are both required to join a zone.");
+        config["zone-allow"] = { [name]: peer };
+      }
+    }
 
-  if (profile.zone === "host") {
-    config["zone-init-allow"] = true;
-    const name = (choices.zoneName || "").trim();
-    const peer = (choices.zonePeer || "").trim();
-    // Rejoining your own zone only makes sense once it exists at a known URL.
-    if (name && peer) config["zone-allow"] = { [name]: peer };
-  }
+    if (layer === "ouroboros") {
+      // andock@1.0 is not in the build; these two pins are the whole mechanism.
+      // Execution still needs the app to serve ANDEE_EXECUTION_SOCKET — without
+      // it the device loads and answers, but every tool call fails closed on 503.
+      Object.assign(trusted, OUROBOROS_TRUSTED);
+      nameResolverLists.push(OUROBOROS_NAME_RESOLVERS);
+      config["trusted-device-signers"] = OUROBOROS_SIGNERS;
+      config["lapee-allow-request-trusted-ca"] = true;
+      config["http-client-prefer-ipv4"] = true;
+      if (!activeLayers.has("bundler")) config["lapee-profile"] = "ouroboros-tunnel";
+    }
 
-  if (profile.ouroboros) {
-    // andock@1.0 is not in the build; these two pins are the whole mechanism.
-    // Execution still needs the app to serve ANDEE_EXECUTION_SOCKET — without
-    // it the device loads and answers, but every tool call fails closed on 503.
-    Object.assign(trusted, OUROBOROS_TRUSTED);
-    nameResolverLists.push(OUROBOROS_NAME_RESOLVERS);
-    config["trusted-device-signers"] = OUROBOROS_SIGNERS;
-    config["lapee-allow-request-trusted-ca"] = true;
-    config["http-client-prefer-ipv4"] = true;
-    if (!profile.bundler) config["lapee-profile"] = "ouroboros-tunnel";
-  }
-
-  if (profile.bundler) {
-    const beneficiary = (choices.beneficiary || "").trim();
-    if (!beneficiary) throw new Error("Bundler beneficiary is required for this profile.");
-    startHooks.push({ device: P4_BOOTSTRAP_DEVICE });
-    Object.assign(trusted, BUNDLER_TRUSTED);
-    nameResolverLists.push(BUNDLER_NAME_RESOLVERS);
-    Object.assign(config, {
-      "lapee-profile": "aopayment-bundler-p4-paid-remote",
-      "lapee-allow-request-trusted-ca": true,
-      "http-client-prefer-ipv4": true,
-      "trusted-device-signers": BUNDLER_SIGNERS,
-      "bundler-beneficiary": beneficiary,
-      "bundler-ans104": "https://up.arweave.net:443",
-      "bundler-premium": 0,
-      "bundler-free-byte-limit": 0,
-      "bundler-max-items": clampInt(choices.maxItems, 1, 10000, 1000),
-      "bundler-max-bundle-dispatch-delay": 2000,
-      "lapee-bundler-completed-item-retention-ms": 0,
-      "simple-pay-price": clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0),
-      "ao-payment-ledger": "ledger",
-      "ao-payment-ledger-path": "/ledger~node-process@1.0",
-      "arweave-byte-price": "dynamic",
-      "arweave-mempool-copycat-on-bundle-complete": true,
-      "arweave-mempool-progress": true,
-      "metering-rates": { "beam-reductions": 0 },
-      "router-opts": {
-        offered: [
-          { template: "/.*~process@1.0/.*", price: clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0) },
-          { template: "/~bundler@1.0/tx", price: clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0) },
-          { template: "/~bundler@1.0/item", price: clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0) },
-        ],
-      },
-    });
-    config.on = { ...(config.on || {}), request: [{ device: "manifest@1.0" }] };
+    if (layer === "bundler") {
+      const beneficiary = (choices.beneficiary || "").trim();
+      if (!beneficiary) throw new Error("Bundler beneficiary is required when Bundler is enabled.");
+      startHooks.push({ device: P4_BOOTSTRAP_DEVICE });
+      Object.assign(trusted, BUNDLER_TRUSTED);
+      nameResolverLists.push(BUNDLER_NAME_RESOLVERS);
+      Object.assign(config, {
+        "lapee-profile": "aopayment-bundler-p4-paid-remote",
+        "lapee-allow-request-trusted-ca": true,
+        "http-client-prefer-ipv4": true,
+        "trusted-device-signers": BUNDLER_SIGNERS,
+        "bundler-beneficiary": beneficiary,
+        "bundler-ans104": "https://up.arweave.net:443",
+        "bundler-premium": 0,
+        "bundler-free-byte-limit": 0,
+        "bundler-max-items": clampInt(choices.maxItems, 1, 10000, 1000),
+        "bundler-max-bundle-dispatch-delay": 2000,
+        "lapee-bundler-completed-item-retention-ms": 0,
+        "simple-pay-price": clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0),
+        "ao-payment-ledger": "ledger",
+        "ao-payment-ledger-path": "/ledger~node-process@1.0",
+        "arweave-byte-price": "dynamic",
+        "arweave-mempool-copycat-on-bundle-complete": true,
+        "arweave-mempool-progress": true,
+        "metering-rates": { "beam-reductions": 0 },
+        "router-opts": {
+          offered: [
+            { template: "/.*~process@1.0/.*", price: clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0) },
+            { template: "/~bundler@1.0/tx", price: clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0) },
+            { template: "/~bundler@1.0/item", price: clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0) },
+          ],
+        },
+      });
+      config.on = { ...(config.on || {}), request: [{ device: "manifest@1.0" }] };
+    }
   }
 
   if (choices.disableHyperbuddy) {
@@ -151,8 +163,23 @@ export function buildConfig(choices) {
     config["trusted-devices"] = trusted;
   }
 
-  config["andee-profile-source"] = `andee-configurator/${profile.id}`;
+  config["andee-profile-source"] = `andee-configurator/${layers.join("+") || "plain"}`;
   return sortKeys(config);
+}
+
+function layersForProfile(profile) {
+  if (!profile) return [];
+  const layers = [];
+  if (profile.tunnel) layers.push("tunnel");
+  if (profile.zone) layers.push("zone");
+  if (profile.ouroboros) layers.push("ouroboros");
+  if (profile.bundler) layers.push("bundler");
+  return layers;
+}
+
+function normalizeLayers(layers) {
+  const known = new Set(CAPABILITIES.map((capability) => capability.id));
+  return [...new Set(layers)].filter((layer) => known.has(layer));
 }
 
 /** Keys an operator config cannot set; the node restores its measured values. */
