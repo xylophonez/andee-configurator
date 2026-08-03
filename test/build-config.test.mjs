@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildConfig, strippedKeys, RESERVED_BOOT_KEYS } from "../src/build-config.js";
-import { TUNNEL_IMPL, TUNNEL_PEER, ZONES } from "../src/presets.js";
+import { ANDOCK_IMPL, ANDOCK_SPEC, TUNNEL_IMPL, TUNNEL_PEER, ZONES } from "../src/presets.js";
 
 const zone = ZONES[0];
 
@@ -71,7 +71,7 @@ test("joining a zone without a peer is refused", () => {
 });
 
 test("no profile ever emits a reserved boot key", () => {
-  for (const profile of ["plain", "tunnel", "zone-member", "zone-host", "bundler", "bundler-zone"]) {
+  for (const profile of ["plain", "tunnel", "zone-member", "zone-host", "bundler", "bundler-zone", "ouroboros", "ouroboros-bundler"]) {
     const config = buildConfig({ ...base, profile });
     assert.deepEqual(
       strippedKeys(config),
@@ -104,4 +104,33 @@ test("the reserved key list matches the node's own", () => {
   assert.ok(RESERVED_BOOT_KEYS.includes("store"));
   assert.ok(RESERVED_BOOT_KEYS.includes("load-remote-devices"));
   assert.ok(RESERVED_BOOT_KEYS.includes("preloaded-store"));
+});
+
+test("ouroboros profile pins the published andock device by spec and implementation", () => {
+  const config = buildConfig({ ...base, profile: "ouroboros" });
+  assert.equal(config["name-resolvers"][0]["andock@1.0"], ANDOCK_SPEC);
+  assert.equal(config["trusted-devices"]["andock@1.0"], ANDOCK_IMPL);
+  assert.equal(config["trusted-devices"][ANDOCK_SPEC], ANDOCK_IMPL);
+  assert.equal(config["lapee-profile"], "ouroboros-tunnel");
+  assert.equal(config.on.start[0].device, "tunnel@1.0");
+});
+
+test("ouroboros carries no bundler keys", () => {
+  const config = buildConfig({ ...base, profile: "ouroboros" });
+  assert.equal(config["bundler-beneficiary"], undefined);
+  assert.equal(config["ao-payment-ledger"], undefined);
+});
+
+test("ouroboros and bundler combine without duplicating a resolver", () => {
+  const config = buildConfig({ ...base, profile: "ouroboros-bundler" });
+  const resolvers = config["name-resolvers"];
+  const pins = resolvers[0];
+  assert.equal(pins["andock@1.0"], ANDOCK_SPEC);
+  assert.equal(pins["pricing-router@1.0"], "UH8LNK2WMtgVBhQ6YCkk5dPyKbp3hHsb9pWCznVfYNA");
+  const devices = resolvers.filter((r) => r && r.device).map((r) => r.device);
+  assert.deepEqual(devices, [...new Set(devices)], "a device resolver was emitted twice");
+  assert.equal(config["trusted-devices"]["andock@1.0"], ANDOCK_IMPL);
+  assert.ok(config["trusted-devices"]["lapee-p4-bootstrap@1.0"]);
+  // The bundler owns lapee-profile when both are selected.
+  assert.equal(config["lapee-profile"], "aopayment-bundler-p4-paid-remote");
 });

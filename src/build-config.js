@@ -6,6 +6,9 @@ import {
   BUNDLER_NAME_RESOLVERS,
   BUNDLER_SIGNERS,
   BUNDLER_TRUSTED,
+  OUROBOROS_NAME_RESOLVERS,
+  OUROBOROS_SIGNERS,
+  OUROBOROS_TRUSTED,
   P4_BOOTSTRAP_DEVICE,
   PROFILES,
   TUNNEL_TRUSTED,
@@ -50,6 +53,7 @@ export function buildConfig(choices) {
   const config = {};
   const startHooks = [];
   const trusted = {};
+  const nameResolverLists = [];
 
   if (profile.tunnel) {
     const peer = (choices.tunnelPeer || "").trim();
@@ -83,17 +87,29 @@ export function buildConfig(choices) {
     if (name && peer) config["zone-allow"] = { [name]: peer };
   }
 
+  if (profile.ouroboros) {
+    // andock@1.0 is not in the build; these two pins are the whole mechanism.
+    // Execution still needs the app to serve ANDEE_EXECUTION_SOCKET — without
+    // it the device loads and answers, but every tool call fails closed on 503.
+    Object.assign(trusted, OUROBOROS_TRUSTED);
+    nameResolverLists.push(OUROBOROS_NAME_RESOLVERS);
+    config["trusted-device-signers"] = OUROBOROS_SIGNERS;
+    config["lapee-allow-request-trusted-ca"] = true;
+    config["http-client-prefer-ipv4"] = true;
+    if (!profile.bundler) config["lapee-profile"] = "ouroboros-tunnel";
+  }
+
   if (profile.bundler) {
     const beneficiary = (choices.beneficiary || "").trim();
     if (!beneficiary) throw new Error("Bundler beneficiary is required for this profile.");
     startHooks.push({ device: P4_BOOTSTRAP_DEVICE });
     Object.assign(trusted, BUNDLER_TRUSTED);
+    nameResolverLists.push(BUNDLER_NAME_RESOLVERS);
     Object.assign(config, {
       "lapee-profile": "aopayment-bundler-p4-paid-remote",
       "lapee-allow-request-trusted-ca": true,
       "http-client-prefer-ipv4": true,
       "trusted-device-signers": BUNDLER_SIGNERS,
-      "name-resolvers": BUNDLER_NAME_RESOLVERS,
       "bundler-beneficiary": beneficiary,
       "bundler-ans104": "https://up.arweave.net:443",
       "bundler-premium": 0,
@@ -128,6 +144,9 @@ export function buildConfig(choices) {
   if (startHooks.length) {
     config.on = { ...(config.on || {}), start: startHooks };
   }
+  if (nameResolverLists.length) {
+    config["name-resolvers"] = mergeNameResolvers(nameResolverLists);
+  }
   if (Object.keys(trusted).length) {
     config["trusted-devices"] = trusted;
   }
@@ -139,6 +158,31 @@ export function buildConfig(choices) {
 /** Keys an operator config cannot set; the node restores its measured values. */
 export function strippedKeys(config) {
   return RESERVED_BOOT_KEYS.filter((k) => k in config);
+}
+
+/**
+ * Fold several resolver lists into one. Device-name pins (`{"andock@1.0": id}`)
+ * merge into a single leading map; `{device: ...}` entries and bare strings
+ * keep their order and are de-duplicated, so combining profiles cannot emit
+ * `arweave@2.9` twice.
+ */
+function mergeNameResolvers(lists) {
+  const pins = {};
+  const tail = [];
+  const seen = new Set();
+  for (const list of lists) {
+    for (const entry of list) {
+      if (entry && typeof entry === "object" && !("device" in entry)) {
+        Object.assign(pins, entry);
+        continue;
+      }
+      const key = JSON.stringify(entry);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      tail.push(entry);
+    }
+  }
+  return Object.keys(pins).length ? [pins, ...tail] : tail;
 }
 
 function clampInt(value, min, max, fallback) {

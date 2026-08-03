@@ -70,6 +70,29 @@ export const BUNDLER_SIGNERS = [
 
 export const P4_BOOTSTRAP_DEVICE = "RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ";
 
+// Ouroboros Linux execution on the phone. `andock@1.0` is published, so it
+// loads from Arweave like any other remote device — it is deliberately NOT in
+// the build (`stage-android-devices.sh` stages only devices/common and
+// devices/android). The published archive already carries renamed copies of
+// lib_ouroboros_execution/_tools/_utils, so there is no cross-repo dependency
+// to resolve at config time.
+export const ANDOCK_SPEC = "Zi9e9KreDY3o2E4j2jZ8l2MaCq6pi9H1vNWvTJBJv1k";
+export const ANDOCK_IMPL = "bEIh5SpEZGgL7QRjV7lxktIjVB8KejkRvtEBu0Fox2Y";
+
+export const OUROBOROS_NAME_RESOLVERS = [
+  { "andock@1.0": ANDOCK_SPEC },
+  { device: "arweave@2.9" },
+  { device: "b32-name@1.0" },
+];
+
+export const OUROBOROS_TRUSTED = {
+  "andock@1.0": ANDOCK_IMPL,
+  [ANDOCK_SPEC]: ANDOCK_IMPL,
+};
+
+// Same publisher set as the bundler devices; andock is signed by it too.
+export const OUROBOROS_SIGNERS = BUNDLER_SIGNERS;
+
 export const PROFILES = [
   {
     id: "plain",
@@ -110,5 +133,22 @@ export const PROFILES = [
     tunnel: true,
     bundler: true,
     zone: "join",
+  },
+  {
+    id: "ouroboros",
+    name: "Ouroboros node",
+    blurb:
+      "Linux execution behind a tunnel. Serves the seven Ouroboros tools at ~andock@1.0. " +
+      "Needs an APK whose AndeeExecutionManager is started, or every call fails closed with 503.",
+    tunnel: true,
+    ouroboros: true,
+  },
+  {
+    id: "ouroboros-bundler",
+    name: "Ouroboros and bundler",
+    blurb: "Linux execution and the paid bundler, both behind one tunnel.",
+    tunnel: true,
+    ouroboros: true,
+    bundler: true,
   },
 ];
