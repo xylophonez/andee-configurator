@@ -134,7 +134,18 @@ export function buildConfig(choices) {
         "arweave-byte-price": "dynamic",
         "arweave-mempool-copycat-on-bundle-complete": true,
         "arweave-mempool-progress": true,
-        "metering-rates": { "beam-reductions": 0 },
+        // Live but zero-priced, the pattern already shipped for
+        // beam-reductions. An absent rate folds to zero anyway; listing the
+        // resources makes them discoverable to an operator who wants to
+        // charge for bandwidth or connection time. Names must be lowercase
+        // dash-form: metering@1.0 looks them up verbatim, so "request_bytes"
+        // would silently price to zero.
+        "metering-rates": {
+          "beam-reductions": 0,
+          "request-bytes": 0,
+          "response-bytes": 0,
+          "request-ms": 0,
+        },
         "router-opts": {
           offered: [
             { template: "/.*~process@1.0/.*", price: clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0) },
