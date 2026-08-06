@@ -137,14 +137,15 @@ export function buildConfig(choices) {
         // Live but zero-priced, the pattern already shipped for
         // beam-reductions. An absent rate folds to zero anyway; listing the
         // resources makes them discoverable to an operator who wants to
-        // charge for bandwidth or connection time. Names must be lowercase
-        // dash-form: metering@1.0 looks them up verbatim, so "request_bytes"
-        // would silently price to zero.
+        // charge for the traffic a tunnel actually carries. Names must be
+        // lowercase dash-form: metering@1.0 looks them up verbatim, so
+        // "tunnel_bytes_in" would silently price to zero.
         "metering-rates": {
           "beam-reductions": 0,
-          "request-bytes": 0,
-          "response-bytes": 0,
-          "request-ms": 0,
+          "tunnel-bytes-in": 0,
+          "tunnel-bytes-out": 0,
+          "tunnel-idle-ms": 0,
+          "tunnel-relay-ms": 0,
         },
         "router-opts": {
           offered: [
