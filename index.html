@@ -65,10 +65,22 @@
             </div>
           </div>
           <div class="field-list">
-            <label class="field-row">
+            <div class="stacked-field">
               <span>Router</span>
+              <div class="custom-select custom-select--field" id="tunnel-picker">
+                <button class="field-select-trigger custom-select__trigger" id="tunnel-trigger" type="button"
+                        aria-haspopup="listbox" aria-expanded="false" aria-controls="tunnel-menu">
+                  <span id="tunnel-selected-label">tunnel.permaweb.space</span>
+                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 8 3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="custom-select__menu" id="tunnel-menu" role="listbox" aria-label="Tunnel router" hidden></div>
+                <select id="tunnel-select" class="native-select" aria-hidden="true" tabindex="-1" hidden></select>
+              </div>
+            </div>
+            <label class="stacked-field">Router URL
               <input id="tunnel-peer" type="url" inputmode="url" autocomplete="off" spellcheck="false" />
             </label>
+            <p class="inline-note" id="tunnel-note"></p>
             <div class="field-row field-row--compact">
               <span>Workers</span>
               <span class="number-stepper">

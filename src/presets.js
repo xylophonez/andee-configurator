@@ -7,12 +7,45 @@
 // deliberately absent — the store strips them and restores the measured base
 // values, so offering them here would only mislead.
 
-export const TUNNEL_PEER = "https://smoke.solutions";
+// Known tunnel routers. A router and the node that registers with it must agree
+// on the tunnel@1.0 implementation, and routers repin at different times — so
+// each entry carries its own `impl` rather than sharing one global pin. Picking
+// a router in the UI sets both, which removes the commonest registration
+// failure: a peer from one router with the implementation of another.
+export const TUNNELS = [
+  {
+    id: "permaweb",
+    name: "tunnel.permaweb.space",
+    peer: "https://tunnel.permaweb.space",
+    impl: "u3K9cV05p14IZ_t0dWTptuu87J1NT-LhgirldS9SsVM",
+    note: "Serves full responses, including large assets and redirects.",
+  },
+  {
+    id: "smoke",
+    name: "smoke.solutions",
+    peer: "https://smoke.solutions",
+    impl: "SVKRgrshzPceeBdnknJNvR-m2zQ0mFYJvjMx0rSscW0",
+    note: "Small bare-body responses only — larger pages and headers are dropped.",
+  },
+];
 
-// Implementation the public tunnel router currently trusts. If a tunnel refuses
+export const TUNNEL_PEER = TUNNELS[0].peer;
+
+// Implementation the default router currently trusts. If a tunnel refuses
 // to register, check this first: the router repins it from time to time and a
 // stale value fails before a device is ever contacted.
-export const TUNNEL_IMPL = "SVKRgrshzPceeBdnknJNvR-m2zQ0mFYJvjMx0rSscW0";
+export const TUNNEL_IMPL = TUNNELS[0].impl;
+
+export function tunnelById(id) {
+  return TUNNELS.find((tunnel) => tunnel.id === id);
+}
+
+/** The known router serving `peer`, if any — used to keep the picker honest
+ *  when someone types or pastes a URL directly. */
+export function tunnelByPeer(peer) {
+  const wanted = String(peer ?? "").trim().replace(/\/+$/, "");
+  return TUNNELS.find((tunnel) => tunnel.peer.replace(/\/+$/, "") === wanted);
+}
 
 // Live zone, created 2026-07-31, admission gated on AndEE attestation.
 export const ZONES = [

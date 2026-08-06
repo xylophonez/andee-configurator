@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildConfig, strippedKeys, RESERVED_BOOT_KEYS } from "../src/build-config.js";
-import { ANDOCK_IMPL, ANDOCK_SPEC, TUNNEL_IMPL, TUNNEL_PEER, ZONES } from "../src/presets.js";
+import { ANDOCK_IMPL, ANDOCK_SPEC, TUNNELS, TUNNEL_IMPL, TUNNEL_PEER, ZONES, tunnelByPeer } from "../src/presets.js";
 
 const zone = ZONES[0];
 
@@ -162,4 +162,33 @@ test("a zone layer may host without forcing public access", () => {
   assert.equal(config["zone-init-allow"], true);
   assert.equal(config.on, undefined);
   assert.equal(config["trusted-devices"], undefined);
+});
+
+test("each known tunnel carries its own implementation pin", () => {
+  // A peer from one router with another router's pin is the commonest
+  // registration failure, so the registry must not share a single global pin.
+  assert.ok(TUNNELS.length >= 2);
+  for (const tunnel of TUNNELS) {
+    assert.match(tunnel.peer, /^https:\/\//);
+    assert.ok(tunnel.impl && tunnel.impl.length === 43, `${tunnel.id} needs a 43-char impl id`);
+  }
+  const impls = new Set(TUNNELS.map((t) => t.impl));
+  assert.equal(impls.size, TUNNELS.length, "routers must not share an implementation pin");
+});
+
+test("selecting a tunnel builds a config pinned to that router", () => {
+  for (const tunnel of TUNNELS) {
+    const config = buildConfig({ layers: ["tunnel"], tunnelPeer: tunnel.peer, tunnelImpl: tunnel.impl });
+    assert.equal(config.on.start[0].peer, tunnel.peer);
+    assert.equal(config["trusted-devices"]["tunnel@1.0"], tunnel.impl);
+  }
+});
+
+test("tunnelByPeer matches known routers regardless of trailing slash", () => {
+  const first = TUNNELS[0];
+  assert.equal(tunnelByPeer(first.peer)?.id, first.id);
+  assert.equal(tunnelByPeer(`${first.peer}/`)?.id, first.id);
+  assert.equal(tunnelByPeer("  " + first.peer + "  ")?.id, first.id);
+  assert.equal(tunnelByPeer("https://not-a-known-router.example"), undefined);
+  assert.equal(tunnelByPeer(""), undefined);
 });

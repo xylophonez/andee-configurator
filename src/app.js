@@ -1,5 +1,13 @@
 import { buildConfig, capabilityById, strippedKeys } from "./build-config.js";
-import { CAPABILITIES, TUNNEL_IMPL, TUNNEL_PEER, ZONES } from "./presets.js";
+import {
+  CAPABILITIES,
+  TUNNELS,
+  TUNNEL_IMPL,
+  TUNNEL_PEER,
+  ZONES,
+  tunnelByPeer,
+  tunnelById,
+} from "./presets.js";
 import { initTheme } from "./theme.js";
 import "./andee-phone.js";
 
@@ -391,6 +399,7 @@ function boot() {
   el("tunnel-impl").value = TUNNEL_IMPL;
   el("price").value = "0";
   el("max-items").value = "1000";
+  renderTunnelOptions();
   renderZoneOptions();
   bindEvents();
   if (bridge) {
@@ -416,6 +425,60 @@ function applyToNode() {
     note.textContent = `Could not apply: ${exc?.message ?? exc}`;
   }
   note.hidden = false;
+}
+
+function renderTunnelOptions() {
+  const select = el("tunnel-select");
+  select.replaceChildren();
+  for (const tunnel of TUNNELS) {
+    const option = document.createElement("option");
+    option.value = tunnel.id;
+    option.textContent = tunnel.name;
+    select.append(option);
+  }
+  const custom = document.createElement("option");
+  custom.value = "custom";
+  custom.textContent = "Other…";
+  select.append(custom);
+  selectTunnel(TUNNELS[0]?.id ?? "custom");
+  setupCustomSelect({
+    rootId: "tunnel-picker",
+    selectId: "tunnel-select",
+    triggerId: "tunnel-trigger",
+    menuId: "tunnel-menu",
+    describe: (id) => tunnelById(id)?.note ?? "Enter another router manually.",
+    onSync: (option) => { el("tunnel-selected-label").textContent = option?.textContent ?? "Other…"; },
+  });
+}
+
+function selectTunnel(id) {
+  const select = el("tunnel-select");
+  select.value = id;
+  const tunnel = tunnelById(id);
+  if (tunnel) {
+    el("tunnel-peer").value = tunnel.peer;
+    // Each router pins its own implementation; carrying the previous router's
+    // pin over is the commonest reason a node is refused registration.
+    el("tunnel-impl").value = tunnel.impl;
+    el("tunnel-note").textContent = tunnel.note ?? "";
+  } else {
+    el("tunnel-note").textContent = "";
+  }
+}
+
+/** Keep the picker truthful when the URL is edited by hand: typing a known
+ *  router's address selects it, anything else falls back to "Other…". */
+function syncTunnelPickerFromPeer() {
+  const select = el("tunnel-select");
+  const match = tunnelByPeer(el("tunnel-peer").value);
+  const wanted = match?.id ?? "custom";
+  if (select.value === wanted) return;
+  select.value = wanted;
+  el("tunnel-selected-label").textContent = match?.name ?? "Other…";
+  el("tunnel-note").textContent = match?.note ?? "";
+  for (const button of el("tunnel-menu").querySelectorAll(".custom-select__option")) {
+    button.setAttribute("aria-selected", String(button.dataset.value === wanted));
+  }
 }
 
 function renderZoneOptions() {
@@ -513,6 +576,11 @@ function bindEvents() {
     moveLayerAround(draggedLayerId, target.dataset.layer, after);
     draggedLayerId = null;
   });
+  el("tunnel-select").addEventListener("change", (event) => {
+    if (event.target.value !== "custom") selectTunnel(event.target.value);
+    else el("tunnel-note").textContent = "";
+    render();
+  });
   el("zone-select").addEventListener("change", (event) => {
     if (event.target.value !== "custom") selectZone(event.target.value);
     else el("zone-note").textContent = "";
@@ -525,6 +593,7 @@ function bindEvents() {
   ]) {
     el(id).addEventListener("input", (event) => {
       syncNumberStepper(event.target);
+      if (event.target.id === "tunnel-peer") syncTunnelPickerFromPeer();
       render();
     });
   }
