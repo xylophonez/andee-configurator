@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildConfig, strippedKeys, RESERVED_BOOT_KEYS } from "../src/build-config.js";
+import { buildConfig, normalizePeer, strippedKeys, RESERVED_BOOT_KEYS } from "../src/build-config.js";
 import { ANDOCK_IMPL, ANDOCK_SPEC, TUNNELS, TUNNEL_IMPL, TUNNEL_PEER, ZONES, tunnelByPeer } from "../src/presets.js";
 
 const zone = ZONES[0];
@@ -191,4 +191,19 @@ test("tunnelByPeer matches known routers regardless of trailing slash", () => {
   assert.equal(tunnelByPeer("  " + first.peer + "  ")?.id, first.id);
   assert.equal(tunnelByPeer("https://not-a-known-router.example"), undefined);
   assert.equal(tunnelByPeer(""), undefined);
+});
+
+test("a hand-typed router without a scheme still produces a dialable peer", () => {
+  // Entering a bare hostname is the natural thing to do, and a scheme-less
+  // peer leaves the node sitting on "connecting" instead of failing loudly.
+  const config = buildConfig({ layers: ["tunnel"], tunnelPeer: "tunnel.permaweb.space" });
+  assert.equal(config.on.start[0].peer, "https://tunnel.permaweb.space");
+});
+
+test("peer normalisation keeps explicit schemes and trims trailing slashes", () => {
+  assert.equal(normalizePeer("  https://a.example/  "), "https://a.example");
+  assert.equal(normalizePeer("http://a.example"), "http://a.example");
+  assert.equal(normalizePeer("a.example"), "https://a.example");
+  assert.equal(normalizePeer(""), "");
+  assert.equal(normalizePeer(undefined), "");
 });

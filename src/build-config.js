@@ -69,7 +69,7 @@ export function buildConfig(choices) {
 
   for (const layer of layers) {
     if (layer === "tunnel") {
-      const peer = (choices.tunnelPeer || "").trim();
+      const peer = normalizePeer(choices.tunnelPeer);
       if (!peer) throw new Error("Tunnel peer is required when Public access is enabled.");
       startHooks.push({
         device: "tunnel@1.0",
@@ -210,6 +210,20 @@ function mergeNameResolvers(lists) {
     }
   }
   return Object.keys(pins).length ? [pins, ...tail] : tail;
+}
+
+/**
+ * A router typed by hand usually arrives as a bare hostname. The connect hook
+ * needs an absolute URL: given `tunnel.example.com` the client has no scheme to
+ * dial, so it never reaches the router and the node sits on "connecting"
+ * forever rather than reporting a bad address. Default to https and drop any
+ * trailing slash so the same router is one string however it was entered.
+ */
+export function normalizePeer(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return withScheme.replace(/\/+$/, "");
 }
 
 function clampInt(value, min, max, fallback) {
