@@ -15,12 +15,17 @@ const WALLET = process.env.ANDEE_DEPLOY_WALLET
   ?? '/home/fn/Dev/reference-owner/wallet.json';
 
 // Paths are relative to the repo root and become the manifest's paths.
+// Every module app.js pulls in must be here: a manifest missing one entry
+// leaves the page loading a module graph that cannot resolve, which fails
+// silently as a blank configurator rather than a 404 anyone would notice.
 const FILES = [
   ['index.html', 'text/html'],
   ['styles.css', 'text/css'],
   ['src/app.js', 'text/javascript'],
   ['src/build-config.js', 'text/javascript'],
   ['src/presets.js', 'text/javascript'],
+  ['src/theme.js', 'text/javascript'],
+  ['src/andee-phone.js', 'text/javascript'],
 ];
 
 const jwk = JSON.parse(readFileSync(WALLET, 'utf8'));

@@ -91,3 +91,43 @@ that one opens a raw node image, finds the FAT EFI partition and patches
 `EFI/boot/config.json` and `wifi.conf` in place. On Android there is no image to
 patch — the node imports a JSON — so the FAT/GPT reader and the wifi editor are
 gone.
+
+## Deploying, and the mutable reference
+
+The app is deployed as an Arweave path manifest (`node deploy.mjs`), which
+mints a **new, immutable** manifest id every time. Anything that hardcodes a
+manifest id — notably the Android app's `ConfiguratorActivity`, whose
+`CONFIGURATOR_URL` is a compile-time constant — is therefore frozen to the
+version it shipped against, and needs an app release to see any UI change.
+
+So the app should be pointed at a **`~reference@1.0` mutable reference**
+instead. The reference id never changes; a `set` repoints it at a new manifest.
+
+**Configurator reference:** `BD8gs73YRzTwOJ0YpDTE3DOxjbQQ8vhhgIVJc11T_mA`
+→ `https://arweave.net/BD8gs73YRzTwOJ0YpDTE3DOxjbQQ8vhhgIVJc11T_mA/`
+(sub-paths resolve through it, so `src/app.js` and friends load normally).
+
+To ship a UI change:
+
+```sh
+node deploy.mjs                      # -> new manifest id
+cd ~/Dev/reference-owner
+node set-reference.mjs BD8gs73YRzTwOJ0YpDTE3DOxjbQQ8vhhgIVJc11T_mA <NEW_MANIFEST_ID>
+```
+
+Then **read it back** before believing it — propagation took ~90s when the
+reference was created:
+
+```sh
+curl -sL https://arweave.net/BD8gs73YRzTwOJ0YpDTE3DOxjbQQ8vhhgIVJc11T_mA/ | grep tunnel-picker
+```
+
+Two traps worth knowing:
+
+- **Always `curl -L`.** Gateways answer a bare id with a 302 to a sandbox
+  subdomain. Without `-L` you get a 748-byte CDN error page and will conclude
+  a perfectly healthy deploy is dead. That misdiagnosis has already happened
+  once.
+- **Every module `app.js` imports must be in `FILES`.** A manifest missing one
+  entry fails as a blank page, not a 404, because the module graph cannot
+  resolve. `theme.js` and `andee-phone.js` were missing until 2026-08-06.
