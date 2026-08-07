@@ -5,13 +5,23 @@ import {
   TUNNEL_IMPL,
   TUNNEL_PEER,
   ZONES,
-  tunnelByPeer,
-  tunnelById,
 } from "./presets.js";
 import { initTheme } from "./theme.js";
+import { discoverTunnels, probeTunnel, asTunnelEntry, describePrice } from "./tunnel-discovery.js";
 import "./andee-phone.js";
 
 const el = (id) => document.getElementById(id);
+
+// Routers found on the network, kept beside the built-in list rather than
+// replacing it: discovery needs a gateway and a working connection, and the
+// picker has to stay usable without either.
+let discoveredTunnels = [];
+const allTunnels = () => [...TUNNELS, ...discoveredTunnels];
+const findTunnel = (id) => allTunnels().find((tunnel) => tunnel.id === id);
+const findTunnelByPeer = (peer) => {
+  const wanted = String(peer ?? "").trim().replace(/\/+$/, "");
+  return allTunnels().find((tunnel) => tunnel.peer.replace(/\/+$/, "") === wanted);
+};
 
 const state = {
   layers: ["tunnel"],
@@ -430,7 +440,7 @@ function applyToNode() {
 function renderTunnelOptions() {
   const select = el("tunnel-select");
   select.replaceChildren();
-  for (const tunnel of TUNNELS) {
+  for (const tunnel of allTunnels()) {
     const option = document.createElement("option");
     option.value = tunnel.id;
     option.textContent = tunnel.name;
@@ -446,7 +456,7 @@ function renderTunnelOptions() {
     selectId: "tunnel-select",
     triggerId: "tunnel-trigger",
     menuId: "tunnel-menu",
-    describe: (id) => tunnelById(id)?.note ?? "Enter another router manually.",
+    describe: (id) => findTunnel(id)?.note ?? "Enter another router manually.",
     onSync: (option) => { el("tunnel-selected-label").textContent = option?.textContent ?? "Other…"; },
   });
 }
@@ -454,7 +464,7 @@ function renderTunnelOptions() {
 function selectTunnel(id) {
   const select = el("tunnel-select");
   select.value = id;
-  const tunnel = tunnelById(id);
+  const tunnel = findTunnel(id);
   if (tunnel) {
     el("tunnel-peer").value = tunnel.peer;
     // Each router pins its own implementation; carrying the previous router's
@@ -470,7 +480,7 @@ function selectTunnel(id) {
  *  router's address selects it, anything else falls back to "Other…". */
 function syncTunnelPickerFromPeer() {
   const select = el("tunnel-select");
-  const match = tunnelByPeer(el("tunnel-peer").value);
+  const match = findTunnelByPeer(el("tunnel-peer").value);
   const wanted = match?.id ?? "custom";
   if (select.value === wanted) return;
   select.value = wanted;
@@ -478,6 +488,60 @@ function syncTunnelPickerFromPeer() {
   el("tunnel-note").textContent = match?.note ?? "";
   for (const button of el("tunnel-menu").querySelectorAll(".custom-select__option")) {
     button.setAttribute("aria-selected", String(button.dataset.value === wanted));
+  }
+}
+
+/** Ask the selected router what it currently pins and charges.
+ *
+ *  The pin matters more than the price. A router repins on its own schedule,
+ *  so any value written down here goes stale silently and the node is refused
+ *  registration before a device is ever contacted. Reading it from the router
+ *  cannot be stale. Left alone if the probe fails -- an unreachable router is
+ *  no reason to discard a pin the user may have typed deliberately. */
+async function refreshSelectedTunnel() {
+  const peer = el("tunnel-peer").value.trim();
+  if (!/^https?:\/\//i.test(peer)) return;
+  const note = el("tunnel-discover-note");
+  const probe = await probeTunnel(peer, { timeoutMs: 8000 });
+  if (!probe) return;
+  if (probe.impl && probe.impl !== el("tunnel-impl").value) {
+    el("tunnel-impl").value = probe.impl;
+    render();
+  }
+  note.textContent =
+    `Live: ${describePrice(probe)}, ${probe.registrations} node` +
+    `${probe.registrations === 1 ? "" : "s"} connected.`;
+  note.hidden = false;
+}
+
+async function runTunnelDiscovery() {
+  const button = el("tunnel-discover");
+  const note = el("tunnel-discover-note");
+  button.disabled = true;
+  button.textContent = "Searching…";
+  note.hidden = false;
+  note.textContent = "Reading location records…";
+  try {
+    const { candidates, tunnels } = await discoverTunnels({ timeoutMs: 8000 });
+    // Built-in routers stay put; only genuinely new ones are appended, and a
+    // discovered entry never shadows one the user already has selected.
+    const known = new Set(TUNNELS.map((tunnel) => tunnel.peer.replace(/\/+$/, "")));
+    discoveredTunnels = tunnels
+      .filter((tunnel) => !known.has(tunnel.peer))
+      .map(asTunnelEntry);
+    const current = el("tunnel-select").value;
+    renderTunnelOptions();
+    if (findTunnel(current)) el("tunnel-select").value = current;
+    note.textContent = discoveredTunnels.length
+      ? `Found ${discoveredTunnels.length} router${discoveredTunnels.length === 1 ? "" : "s"} ` +
+        `from ${candidates} location record${candidates === 1 ? "" : "s"}.`
+      : `No new routers among ${candidates} location records. ` +
+        `A node only becomes findable once it publishes one.`;
+  } catch (exc) {
+    note.textContent = `Could not search: ${exc?.message ?? exc}`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Find routers";
   }
 }
 
@@ -580,7 +644,11 @@ function bindEvents() {
     if (event.target.value !== "custom") selectTunnel(event.target.value);
     else el("tunnel-note").textContent = "";
     render();
+    refreshSelectedTunnel();
   });
+  el("tunnel-discover").addEventListener("click", runTunnelDiscovery);
+  // A hand-typed router gets the same treatment once the field settles.
+  el("tunnel-peer").addEventListener("change", () => refreshSelectedTunnel());
   el("zone-select").addEventListener("change", (event) => {
     if (event.target.value !== "custom") selectZone(event.target.value);
     else el("zone-note").textContent = "";

@@ -17,7 +17,7 @@ export const TUNNELS = [
     id: "permaweb",
     name: "tunnel.permaweb.space",
     peer: "https://tunnel.permaweb.space",
-    impl: "u3K9cV05p14IZ_t0dWTptuu87J1NT-LhgirldS9SsVM",
+    impl: "UoBIgtRChLBl_MLFTbjGDdME2YLfYn_9573H02DK0Dc",
     note: "Serves full responses, including large assets and redirects.",
   },
   {

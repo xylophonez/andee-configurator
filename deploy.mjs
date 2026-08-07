@@ -26,6 +26,7 @@ const FILES = [
   ['src/presets.js', 'text/javascript'],
   ['src/theme.js', 'text/javascript'],
   ['src/andee-phone.js', 'text/javascript'],
+  ['src/tunnel-discovery.js', 'text/javascript'],
 ];
 
 const jwk = JSON.parse(readFileSync(WALLET, 'utf8'));
