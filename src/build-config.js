@@ -137,15 +137,21 @@ export function buildConfig(choices) {
         // Live but zero-priced, the pattern already shipped for
         // beam-reductions. An absent rate folds to zero anyway; listing the
         // resources makes them discoverable to an operator who wants to
-        // charge for the traffic a tunnel actually carries. Names must be
-        // lowercase dash-form: metering@1.0 looks them up verbatim, so
-        // "tunnel_bytes_in" would silently price to zero.
+        // charge for the traffic this node carries. Names must be lowercase
+        // dash-form: metering@1.0 looks them up verbatim, so "meta_bytes_in"
+        // would silently price to zero.
+        //
+        // These are meta@1.0's meters, not the tunnel's. They count every
+        // request the node handles rather than relayed traffic alone, so
+        // pricing them here tolls this node's own callers -- which is the
+        // point when the node is serving, and a mistake if the intent was to
+        // charge only for a tunnel. Directions are from this node's side:
+        // meta-bytes-in is what arrives, meta-bytes-out is what it returns.
         "metering-rates": {
           "beam-reductions": 0,
-          "tunnel-bytes-in": 0,
-          "tunnel-bytes-out": 0,
-          "tunnel-idle-ms": 0,
-          "tunnel-relay-ms": 0,
+          "meta-bytes-in": 0,
+          "meta-bytes-out": 0,
+          "meta-request-ms": 0,
         },
         "router-opts": {
           offered: [
