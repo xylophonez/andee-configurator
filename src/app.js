@@ -12,11 +12,24 @@ import "./andee-phone.js";
 
 const el = (id) => document.getElementById(id);
 
+// What each router said about itself when it was last probed, keyed by peer.
+// Built-in entries carry no description of their own, so this is where their
+// price and node count come from too -- a bootstrap router is not a router we
+// know more about, only one we can reach before discovery has run.
+const liveTunnels = new Map();
+
 // Routers found on the network, kept beside the built-in list rather than
 // replacing it: discovery needs a gateway and a working connection, and the
 // picker has to stay usable without either.
 let discoveredTunnels = [];
-const allTunnels = () => [...TUNNELS, ...discoveredTunnels];
+const allTunnels = () => {
+  const builtins = TUNNELS.map((tunnel) => {
+    const live = liveTunnels.get(tunnel.peer.replace(/\/+$/, ""));
+    // A live pin supersedes the bootstrap value; routers repin without notice.
+    return live ? { ...tunnel, impl: live.impl ?? tunnel.impl, note: live.note } : tunnel;
+  });
+  return [...builtins, ...discoveredTunnels];
+};
 const findTunnel = (id) => allTunnels().find((tunnel) => tunnel.id === id);
 const findTunnelByPeer = (peer) => {
   const wanted = String(peer ?? "").trim().replace(/\/+$/, "");
@@ -419,6 +432,12 @@ function boot() {
   }
   renderNodeIdentity();
   applyLayers();
+  // Discover in the background. The picker is already usable at this point --
+  // the bootstrap router is rendered and selected -- so this only ever adds to
+  // it. Failure is silent by design: a page that cannot reach a gateway should
+  // still configure a node against the router it already has.
+  runTunnelDiscovery({ quiet: true });
+  refreshSelectedTunnel();
 }
 
 function applyToNode() {
@@ -456,7 +475,11 @@ function renderTunnelOptions() {
     selectId: "tunnel-select",
     triggerId: "tunnel-trigger",
     menuId: "tunnel-menu",
-    describe: (id) => findTunnel(id)?.note ?? "Enter another router manually.",
+    // Only the manual option gets fixed prose. A router describes itself once
+    // it has been probed, and says nothing until then rather than inheriting a
+    // sentence that was written about a different router.
+    describe: (id) =>
+      id === "custom" ? "Enter another router manually." : (findTunnel(id)?.note ?? ""),
     onSync: (option) => { el("tunnel-selected-label").textContent = option?.textContent ?? "Other…"; },
   });
 }
@@ -514,31 +537,40 @@ async function refreshSelectedTunnel() {
   note.hidden = false;
 }
 
-async function runTunnelDiscovery() {
+async function runTunnelDiscovery({ quiet = false } = {}) {
   const button = el("tunnel-discover");
   const note = el("tunnel-discover-note");
   button.disabled = true;
   button.textContent = "Searching…";
-  note.hidden = false;
-  note.textContent = "Reading location records…";
+  if (!quiet) {
+    note.hidden = false;
+    note.textContent = "Reading location records…";
+  }
   try {
     const { candidates, tunnels } = await discoverTunnels({ timeoutMs: 8000 });
-    // Built-in routers stay put; only genuinely new ones are appended, and a
-    // discovered entry never shadows one the user already has selected.
+    // A built-in router that also turns up in discovery is enriched, not
+    // duplicated: its live price and pin land in `liveTunnels` and it keeps its
+    // own entry in the list.
     const known = new Set(TUNNELS.map((tunnel) => tunnel.peer.replace(/\/+$/, "")));
+    for (const tunnel of tunnels) liveTunnels.set(tunnel.peer, asTunnelEntry(tunnel));
     discoveredTunnels = tunnels
       .filter((tunnel) => !known.has(tunnel.peer))
       .map(asTunnelEntry);
     const current = el("tunnel-select").value;
     renderTunnelOptions();
     if (findTunnel(current)) el("tunnel-select").value = current;
-    note.textContent = discoveredTunnels.length
-      ? `Found ${discoveredTunnels.length} router${discoveredTunnels.length === 1 ? "" : "s"} ` +
-        `from ${candidates} location record${candidates === 1 ? "" : "s"}.`
-      : `No new routers among ${candidates} location records. ` +
-        `A node only becomes findable once it publishes one.`;
+    // On the background pass say nothing unless something was found -- an
+    // empty registry is the normal state today and is not news on page load.
+    if (!quiet || discoveredTunnels.length) {
+      note.hidden = false;
+      note.textContent = discoveredTunnels.length
+        ? `Found ${discoveredTunnels.length} router${discoveredTunnels.length === 1 ? "" : "s"} ` +
+          `from ${candidates} location record${candidates === 1 ? "" : "s"}.`
+        : `No new routers among ${candidates} location records. ` +
+          `A node only becomes findable once it publishes one.`;
+    }
   } catch (exc) {
-    note.textContent = `Could not search: ${exc?.message ?? exc}`;
+    if (!quiet) note.textContent = `Could not search: ${exc?.message ?? exc}`;
   } finally {
     button.disabled = false;
     button.textContent = "Find routers";

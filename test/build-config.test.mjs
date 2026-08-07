@@ -164,16 +164,27 @@ test("a zone layer may host without forcing public access", () => {
   assert.equal(config["trusted-devices"], undefined);
 });
 
-test("each known tunnel carries its own implementation pin", () => {
+test("each bootstrap tunnel carries its own implementation pin", () => {
   // A peer from one router with another router's pin is the commonest
-  // registration failure, so the registry must not share a single global pin.
-  assert.ok(TUNNELS.length >= 2);
+  // registration failure, so the list must not share a single global pin.
+  assert.ok(TUNNELS.length >= 1, "at least one router must work without discovery");
   for (const tunnel of TUNNELS) {
     assert.match(tunnel.peer, /^https:\/\//);
     assert.ok(tunnel.impl && tunnel.impl.length === 43, `${tunnel.id} needs a 43-char impl id`);
   }
   const impls = new Set(TUNNELS.map((t) => t.impl));
   assert.equal(impls.size, TUNNELS.length, "routers must not share an implementation pin");
+});
+
+test("no router carries a hard-coded description", () => {
+  // Routers are discovered and describe themselves when probed. A sentence
+  // written here about someone else's tunnel is a claim we cannot keep true,
+  // and it is shown to users as fact -- so the list must not carry one, and a
+  // future entry must not quietly reintroduce it.
+  for (const tunnel of TUNNELS) {
+    assert.equal(tunnel.note, undefined, `${tunnel.id} must not hard-code a note`);
+    assert.equal(tunnel.blurb, undefined, `${tunnel.id} must not hard-code a blurb`);
+  }
 });
 
 test("selecting a tunnel builds a config pinned to that router", () => {

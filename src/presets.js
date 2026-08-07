@@ -7,25 +7,25 @@
 // deliberately absent — the store strips them and restores the measured base
 // values, so offering them here would only mislead.
 
-// Known tunnel routers. A router and the node that registers with it must agree
-// on the tunnel@1.0 implementation, and routers repin at different times — so
-// each entry carries its own `impl` rather than sharing one global pin. Picking
-// a router in the UI sets both, which removes the commonest registration
-// failure: a peer from one router with the implementation of another.
+// Routers are discovered, not listed. One is hard-coded as a bootstrap so the
+// picker is usable before discovery runs, with no network and on a first load.
+//
+// Deliberately no `note`. A hard-coded sentence about somebody else's tunnel is
+// a claim we cannot keep true: it describes behaviour that changes without us
+// hearing about it, and it is shown to users as fact. Everything a router says
+// about itself -- price, how many nodes trust it, which implementation it pins
+// -- is read from the router when it is probed.
+//
+// A router and the node registering with it must agree on the tunnel@1.0
+// implementation, and routers repin independently, so each entry carries its
+// own `impl` rather than sharing a global pin. The value below is a starting
+// point; probing replaces it with whatever the router currently pins.
 export const TUNNELS = [
-  {
-    id: "permaweb",
-    name: "tunnel.permaweb.space",
-    peer: "https://tunnel.permaweb.space",
-    impl: "UoBIgtRChLBl_MLFTbjGDdME2YLfYn_9573H02DK0Dc",
-    note: "Serves full responses, including large assets and redirects.",
-  },
   {
     id: "smoke",
     name: "smoke.solutions",
     peer: "https://smoke.solutions",
     impl: "SVKRgrshzPceeBdnknJNvR-m2zQ0mFYJvjMx0rSscW0",
-    note: "Small bare-body responses only — larger pages and headers are dropped.",
   },
 ];
 
