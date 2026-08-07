@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  discoverTunnels,
   locationRecords,
   probeTunnel,
   describePrice,
@@ -36,6 +37,7 @@ function graphqlReply(records) {
           node: {
             id: record.id ?? "tx",
             owner: { address: record.address ?? "addr" },
+            block: { timestamp: record.published ?? Math.floor(Date.now() / 1000) },
             tags: [
               { name: "Type", value: "Scheduler-Location" },
               { name: "Url", value: record.url },
@@ -166,4 +168,106 @@ test("a discovered router is shaped like a built-in one", () => {
   assert.equal(entry.discovered, true);
   // Singular when one node is connected; the plural bug is easy and visible.
   assert.match(entry.note, /1 node connected/);
+});
+
+test("hosts nobody else can reach are discarded", async () => {
+  const junk = [
+    "http://localhost:8734", "http://127.0.0.1:9000", "http://10.1.2.3:8734",
+    "http://192.168.1.185:8734", "http://172.20.0.5:8734", "http://169.254.1.1:8734",
+    "http://ao-su:9000", "https://box.local:8734",
+  ];
+  await withFetch(
+    { "/graphql": graphqlReply([...junk.map((url) => ({ url })), { url: "https://real.example" }]) },
+    async () => {
+      const records = await locationRecords({});
+      assert.deepEqual(records.map((r) => r.url), ["https://real.example"]);
+    },
+  );
+});
+
+test("a republished record supersedes the node's older one", async () => {
+  await withFetch(
+    { "/graphql": graphqlReply([
+        { url: "https://a.example", id: "old", published: 1000 },
+        { url: "https://a.example", id: "new", published: 2000 },
+      ]) },
+    async () => {
+      const records = await locationRecords({});
+      assert.equal(records.length, 1);
+      assert.equal(records[0].record, "new");
+    },
+  );
+});
+
+test("a lapsed record is flagged, not dropped", async () => {
+  // Almost every record in the live registry has lapsed while its URL still
+  // serves, so expiry must not be a filter or discovery returns nothing.
+  await withFetch(
+    { "/graphql": graphqlReply([{ url: "https://old.example", published: 1000, ttl: 3600000 }]) },
+    async () => {
+      const records = await locationRecords({});
+      assert.equal(records.length, 1);
+      assert.equal(records[0].expired, true);
+    },
+  );
+});
+
+test("a router whose node address matches the signer is verified", async () => {
+  await withFetch(
+    {
+      "/graphql": graphqlReply([{ url: "https://honest.example", address: "NODEADDR" }]),
+      "/~tunnel@1.0/status": { "open-registrations": 2, status: 200 },
+      "/~meta@1.0/info/address": "NODEADDR",
+      "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 1, status: 200 },
+    },
+    async () => {
+      const { tunnels, unverified } = await discoverTunnels({});
+      assert.equal(tunnels.length, 1);
+      assert.equal(tunnels[0].verified, true);
+      assert.equal(unverified, 0);
+    },
+  );
+});
+
+test("a record claiming someone else's node is marked unverified", async () => {
+  // The impersonation case: a throwaway node booted from a production image
+  // publishes "I am at <the production URL>". The URL answers -- it is a real
+  // tunnel -- but the signer is not the node serving it.
+  await withFetch(
+    {
+      "/graphql": graphqlReply([{ url: "https://real-tunnel.example", address: "IMPOSTOR" }]),
+      "/~tunnel@1.0/status": { "open-registrations": 9, status: 200 },
+      "/~meta@1.0/info/address": "THE-REAL-NODE",
+      "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 1, status: 200 },
+    },
+    async () => {
+      const { tunnels, unverified } = await discoverTunnels({});
+      assert.equal(tunnels[0].verified, false);
+      assert.equal(tunnels[0].claimedBy, "IMPOSTOR");
+      assert.equal(unverified, 1);
+      assert.match(asTunnelEntry(tunnels[0]).note, /signed by another address/);
+    },
+  );
+});
+
+test("verified routers sort above unverified ones", async () => {
+  await withFetch(
+    {
+      "/graphql": graphqlReply([
+        { url: "https://busy-fake.example", address: "IMPOSTOR" },
+        { url: "https://quiet-real.example", address: "REAL" },
+      ]),
+      "busy-fake.example/~tunnel@1.0/status": { "open-registrations": 99, status: 200 },
+      "quiet-real.example/~tunnel@1.0/status": { "open-registrations": 1, status: 200 },
+      "busy-fake.example/~meta@1.0/info/address": "SOMEONE-ELSE",
+      "quiet-real.example/~meta@1.0/info/address": "REAL",
+      "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 1, status: 200 },
+    },
+    async () => {
+      const { tunnels } = await discoverTunnels({ concurrency: 1 });
+      // Busiest would put the impostor first; verification must outrank it.
+      assert.equal(tunnels[0].peer, "https://quiet-real.example");
+      assert.equal(tunnels[0].verified, true);
+    },
+  );
 });

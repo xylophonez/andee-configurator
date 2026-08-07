@@ -22,9 +22,39 @@ const GATEWAY = "https://arweave.net";
 // claims to be; `Time-To-Live` is how long it claims that stays true.
 const LOCATION_QUERY = `{
   transactions(tags: [{name: "Type", values: ["Scheduler-Location"]}], first: %LIMIT%) {
-    edges { node { id owner { address } tags { name value } } }
+    edges { node { id owner { address } block { timestamp } tags { name value } } }
   }
 }`;
+
+// Hosts that cannot mean anything to someone else's browser. Records carrying
+// them are already in the registry -- `http://127.0.0.1:9000`, `http://ao-su:9000`
+// -- because a node with no location-url builds one from node_host and port,
+// which default to localhost. They are published permanently and in good faith;
+// they are still noise.
+function unroutable(url) {
+  let host;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return true;
+  }
+  if (host === "localhost" || host.endsWith(".localhost")) return true;
+  if (host.endsWith(".local") || host.endsWith(".internal")) return true;
+  if (host === "::1" || host === "[::1]") return true;
+  // A bare hostname with no dot is only resolvable inside whatever network
+  // published it -- container names like `ao-su` reach nobody else.
+  if (!host.includes(".") && !/^\d+\.\d+\.\d+\.\d+$/.test(host)) return true;
+  const v4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    if (a === 127 || a === 0 || a === 10) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 169 && b === 254) return true;
+    if (a >= 224) return true;
+  }
+  return false;
+}
 
 // A HyperBEAM node renders a returned map into HTTP *response headers* as well
 // as the body. Device names contain `@`, which is not a legal character in an
@@ -94,25 +124,39 @@ export async function locationRecords({
   const edges = payload?.data?.transactions?.edges ?? [];
   const insecurePage =
     typeof location !== "undefined" && location.protocol === "https:";
-  const seen = new Set();
-  const out = [];
+  const now = Date.now();
+  const best = new Map();
   for (const edge of edges) {
     const tags = Object.fromEntries(
       (edge.node.tags ?? []).map((tag) => [tag.name, tag.value]),
     );
     const url = String(tags.Url ?? "").trim().replace(/\/+$/, "");
-    if (!url || seen.has(url)) continue;
-    if (!/^https?:\/\//i.test(url)) continue;
+    if (!url || !/^https?:\/\//i.test(url)) continue;
+    if (unroutable(url)) continue;
+    // A page served over HTTPS cannot probe an HTTP node: the browser blocks
+    // it as mixed content, so offering it would produce a router that fails
+    // for a reason the user cannot see.
     if (insecurePage && url.startsWith("http://")) continue;
-    seen.add(url);
-    out.push({
+
+    const ttl = Number(tags["Time-To-Live"] ?? 0) || 0;
+    const published = Number(edge.node.block?.timestamp ?? 0) * 1000;
+    const record = {
       url,
       address: edge.node.owner?.address ?? "",
-      ttl: Number(tags["Time-To-Live"] ?? 0) || 0,
+      ttl,
+      published,
+      // Expiry is recorded, not enforced. Almost every record in the registry
+      // has lapsed -- one-hour TTLs published months ago -- while its URL still
+      // serves. The probe decides what is alive; this only ranks and explains.
+      expired: Boolean(published && ttl && published + ttl < now),
       record: edge.node.id,
-    });
+    };
+    // One record per URL: the most recently published wins, so a node that
+    // republishes supersedes its own older claim.
+    const prior = best.get(url);
+    if (!prior || record.published > prior.published) best.set(url, record);
   }
-  return out;
+  return [...best.values()].sort((a, b) => b.published - a.published);
 }
 
 /** Fetch a single scalar as text. Used where a whole map cannot be requested
@@ -146,7 +190,7 @@ async function getText(url, timeoutMs, signal) {
  *  trust, and inventing one would be trusting it. */
 export async function probeTunnel(url, { timeoutMs = 8000, signal } = {}) {
   const base = url.replace(/\/+$/, "");
-  const [status, impl, rates] = await Promise.all([
+  const [status, impl, rates, address] = await Promise.all([
     getJSON(`${base}/~tunnel@1.0/status`, timeoutMs, signal),
     // Single key, not the whole map -- see the header note above.
     getText(
@@ -155,6 +199,9 @@ export async function probeTunnel(url, { timeoutMs = 8000, signal } = {}) {
       signal,
     ),
     getJSON(`${base}/~meta@1.0/info/metering-rates`, timeoutMs, signal),
+    // Who the node says it is. Compared against whoever signed the location
+    // record; see `verified` in discoverTunnels.
+    getText(`${base}/~meta@1.0/info/address`, timeoutMs, signal),
   ]);
 
   const registrations = Number(status?.["open-registrations"] ?? NaN);
@@ -167,6 +214,7 @@ export async function probeTunnel(url, { timeoutMs = 8000, signal } = {}) {
   return {
     peer: base,
     impl,
+    address,
     registrations,
     // Free until proven otherwise: an absent rate folds to zero in
     // metering@1.0, so no priced resources genuinely means no charge.
@@ -200,7 +248,22 @@ export async function discoverTunnels({
       if (signal?.aborted) return;
       const candidate = candidates[cursor++];
       const probe = await probeTunnel(candidate.url, { timeoutMs, signal });
-      if (probe) found.push({ ...probe, address: candidate.address, record: candidate.record });
+      if (!probe) continue;
+      // Anyone can publish a record claiming any URL -- the record is signed by
+      // its author, not by the node it names. A test node booted from a
+      // production image will happily assert it is the production tunnel. So
+      // ask the node who it is and require it to match the signer. A mismatch
+      // is not a broken router, it is somebody else's claim about this one.
+      const verified =
+        Boolean(probe.address) && probe.address === candidate.address;
+      found.push({
+        ...probe,
+        verified,
+        claimedBy: candidate.address,
+        expired: candidate.expired,
+        published: candidate.published,
+        record: candidate.record,
+      });
     }
   }
 
@@ -208,11 +271,17 @@ export async function discoverTunnels({
     Array.from({ length: Math.min(concurrency, candidates.length) }, worker),
   );
 
-  // Busiest first: a router already carrying registrations has demonstrated it
-  // works, which is worth more to someone choosing one than a cheaper price on
-  // a node nothing has ever used.
-  found.sort((a, b) => b.registrations - a.registrations);
-  return { candidates: candidates.length, tunnels: found };
+  // Verified first, then busiest. A router already carrying registrations has
+  // demonstrated it works, which is worth more to someone choosing one than a
+  // cheaper price on a node nothing has ever used.
+  found.sort(
+    (a, b) => Number(b.verified) - Number(a.verified) || b.registrations - a.registrations,
+  );
+  return {
+    candidates: candidates.length,
+    tunnels: found,
+    unverified: found.filter((tunnel) => !tunnel.verified).length,
+  };
 }
 
 /** Present a rate as money. One base unit per byte is ~$2/TB: an AO token is
@@ -237,15 +306,23 @@ export function describePrice(tunnel, { tokenUSD = 2 } = {}) {
  *  can render discovered and built-in routers through one code path. */
 export function asTunnelEntry(tunnel) {
   const host = tunnel.peer.replace(/^https?:\/\//, "");
+  const parts = [
+    describePrice(tunnel),
+    `${tunnel.registrations} node${tunnel.registrations === 1 ? "" : "s"} connected`,
+  ];
+  // Say what is wrong with it, not just that something is. A user choosing a
+  // router can weigh "nobody vouches for this address" themselves; "suspicious"
+  // tells them nothing and invites ignoring it.
+  if (tunnel.verified === false) parts.push("unverified: record signed by another address");
+  if (tunnel.expired) parts.push("record expired");
+  if (!tunnel.impl) parts.push("implementation pin unavailable");
   return {
     id: `discovered:${host}`,
     name: host,
     peer: tunnel.peer,
     impl: tunnel.impl,
     discovered: true,
-    note:
-      `${describePrice(tunnel)} · ${tunnel.registrations} node` +
-      `${tunnel.registrations === 1 ? "" : "s"} connected` +
-      (tunnel.impl ? "" : " · implementation pin unavailable"),
+    verified: tunnel.verified !== false,
+    note: parts.join(" · "),
   };
 }
