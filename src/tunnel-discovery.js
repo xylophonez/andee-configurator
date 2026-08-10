@@ -18,10 +18,13 @@
 
 const GATEWAY = "https://arweave.net";
 
-// Location records surface on-chain in this form. `Url` is where the node
-// claims to be; `Time-To-Live` is how long it claims that stays true.
+// Legacy scheduler records use title-case tags; current location@1.0 records
+// use normalized lower-case tags. Read both while nodes transition.
 const LOCATION_QUERY = `{
-  transactions(tags: [{name: "Type", values: ["Scheduler-Location"]}], first: %LIMIT%) {
+  legacy: transactions(tags: [{name: "Type", values: ["Location", "Scheduler-Location"]}], first: %LIMIT%) {
+    edges { node { id owner { address } block { timestamp } tags { name value } } }
+  }
+  current: transactions(tags: [{name: "type", values: ["location"]}], first: %LIMIT%) {
     edges { node { id owner { address } block { timestamp } tags { name value } } }
   }
 }`;
@@ -102,7 +105,7 @@ export async function locationRecords({
   timeoutMs = 15000,
   signal,
 } = {}) {
-  const body = JSON.stringify({ query: LOCATION_QUERY.replace("%LIMIT%", String(limit)) });
+  const body = JSON.stringify({ query: LOCATION_QUERY.replaceAll("%LIMIT%", String(limit)) });
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), timeoutMs);
   signal?.addEventListener("abort", () => abort.abort(), { once: true });
@@ -121,7 +124,8 @@ export async function locationRecords({
     clearTimeout(timer);
   }
 
-  const edges = payload?.data?.transactions?.edges ?? [];
+  const edges = Object.values(payload?.data ?? {})
+    .flatMap((transactions) => transactions?.edges ?? []);
   const insecurePage =
     typeof location !== "undefined" && location.protocol === "https:";
   const now = Date.now();
@@ -130,7 +134,7 @@ export async function locationRecords({
     const tags = Object.fromEntries(
       (edge.node.tags ?? []).map((tag) => [tag.name, tag.value]),
     );
-    const url = String(tags.Url ?? "").trim().replace(/\/+$/, "");
+    const url = String(tags.Url ?? tags.url ?? "").trim().replace(/\/+$/, "");
     if (!url || !/^https?:\/\//i.test(url)) continue;
     if (unroutable(url)) continue;
     // A page served over HTTPS cannot probe an HTTP node: the browser blocks
@@ -138,7 +142,7 @@ export async function locationRecords({
     // for a reason the user cannot see.
     if (insecurePage && url.startsWith("http://")) continue;
 
-    const ttl = Number(tags["Time-To-Live"] ?? 0) || 0;
+    const ttl = Number(tags["Time-To-Live"] ?? tags["time-to-live"] ?? 0) || 0;
     const published = Number(edge.node.block?.timestamp ?? 0) * 1000;
     const record = {
       url,
@@ -306,23 +310,22 @@ export function describePrice(tunnel, { tokenUSD = 2 } = {}) {
  *  can render discovered and built-in routers through one code path. */
 export function asTunnelEntry(tunnel) {
   const host = tunnel.peer.replace(/^https?:\/\//, "");
-  const parts = [
-    describePrice(tunnel),
-    `${tunnel.registrations} node${tunnel.registrations === 1 ? "" : "s"} connected`,
-  ];
+  const warnings = [];
   // Say what is wrong with it, not just that something is. A user choosing a
   // router can weigh "nobody vouches for this address" themselves; "suspicious"
   // tells them nothing and invites ignoring it.
-  if (tunnel.verified === false) parts.push("unverified: record signed by another address");
-  if (tunnel.expired) parts.push("record expired");
-  if (!tunnel.impl) parts.push("implementation pin unavailable");
+  if (tunnel.verified === false) warnings.push("unverified: record signed by another address");
+  if (tunnel.expired) warnings.push("record expired");
+  if (!tunnel.impl) warnings.push("implementation pin unavailable");
   return {
     id: `discovered:${host}`,
     name: host,
     peer: tunnel.peer,
     impl: tunnel.impl,
+    registrations: tunnel.registrations,
+    free: tunnel.free,
     discovered: true,
     verified: tunnel.verified !== false,
-    note: parts.join(" · "),
+    note: warnings.join(" · "),
   };
 }

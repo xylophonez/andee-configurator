@@ -30,22 +30,27 @@ function stubFetch(routes) {
 }
 
 function graphqlReply(records) {
+  const edges = (schema) => records
+    .filter((record) => (record.schema ?? "legacy") === schema)
+    .map((record) => {
+      const current = schema === "current";
+      return {
+        node: {
+          id: record.id ?? "tx",
+          owner: { address: record.address ?? "addr" },
+          block: { timestamp: record.published ?? Math.floor(Date.now() / 1000) },
+          tags: [
+            { name: current ? "type" : "Type", value: current ? "location" : "Scheduler-Location" },
+            { name: current ? "url" : "Url", value: record.url },
+            { name: current ? "time-to-live" : "Time-To-Live", value: String(record.ttl ?? 3600000) },
+          ],
+        },
+      };
+    });
   return {
     data: {
-      transactions: {
-        edges: records.map((record) => ({
-          node: {
-            id: record.id ?? "tx",
-            owner: { address: record.address ?? "addr" },
-            block: { timestamp: record.published ?? Math.floor(Date.now() / 1000) },
-            tags: [
-              { name: "Type", value: "Scheduler-Location" },
-              { name: "Url", value: record.url },
-              { name: "Time-To-Live", value: String(record.ttl ?? 3600000) },
-            ],
-          },
-        })),
-      },
+      legacy: { edges: edges("legacy") },
+      current: { edges: edges("current") },
     },
   };
 }
@@ -66,6 +71,33 @@ test("location records are deduplicated by url", async () => {
     async () => {
       const records = await locationRecords({});
       assert.deepEqual(records.map((r) => r.url), ["https://a.example", "https://b.example"]);
+    },
+  );
+});
+
+test("the location query applies its limit to both schemas", async () => {
+  await withFetch(
+    { "/graphql": (_url, init) => {
+        const { query } = JSON.parse(init.body);
+        assert.doesNotMatch(query, /%LIMIT%/);
+        assert.equal([...query.matchAll(/first: 7/g)].length, 2);
+        return graphqlReply([]);
+      } },
+    async () => assert.deepEqual(await locationRecords({ limit: 7 }), []),
+  );
+});
+
+test("current location records supersede legacy records for the same url", async () => {
+  await withFetch(
+    { "/graphql": graphqlReply([
+        { url: "https://a.example", id: "legacy", published: 1000 },
+        { url: "https://a.example/", id: "current", published: 2000, schema: "current" },
+        { url: "https://b.example", id: "other", schema: "current" },
+      ]) },
+    async () => {
+      const records = await locationRecords({});
+      assert.deepEqual(records.map((r) => r.url), ["https://b.example", "https://a.example"]);
+      assert.equal(records.find((record) => record.url === "https://a.example").record, "current");
     },
   );
 });
@@ -161,13 +193,14 @@ test("a discovered router is shaped like a built-in one", () => {
     peer: "https://x.example", impl: "PIN", registrations: 1,
     rates: { "meta-bytes-in": 1 }, egressRate: 1, free: false,
   });
-  for (const key of ["id", "name", "peer", "impl", "note"]) {
+  for (const key of ["id", "name", "peer", "impl", "registrations", "free", "note"]) {
     assert.ok(key in entry, `missing ${key}`);
   }
   assert.equal(entry.name, "x.example");
   assert.equal(entry.discovered, true);
-  // Singular when one node is connected; the plural bug is easy and visible.
-  assert.match(entry.note, /1 node connected/);
+  assert.equal(entry.registrations, 1);
+  assert.equal(entry.free, false);
+  assert.equal(entry.note, "");
 });
 
 test("hosts nobody else can reach are discarded", async () => {

@@ -7,7 +7,7 @@ import {
   ZONES,
 } from "./presets.js";
 import { initTheme } from "./theme.js";
-import { discoverTunnels, probeTunnel, asTunnelEntry, describePrice } from "./tunnel-discovery.js";
+import { discoverTunnels, probeTunnel, asTunnelEntry } from "./tunnel-discovery.js";
 import "./andee-phone.js";
 
 const el = (id) => document.getElementById(id);
@@ -26,7 +26,10 @@ const allTunnels = () => {
   const builtins = TUNNELS.map((tunnel) => {
     const live = liveTunnels.get(tunnel.peer.replace(/\/+$/, ""));
     // A live pin supersedes the bootstrap value; routers repin without notice.
-    return live ? { ...tunnel, impl: live.impl ?? tunnel.impl, note: live.note } : tunnel;
+    return live ? {
+      ...tunnel, impl: live.impl ?? tunnel.impl, note: live.note,
+      registrations: live.registrations, free: live.free,
+    } : tunnel;
   });
   return [...builtins, ...discoveredTunnels];
 };
@@ -61,12 +64,19 @@ function closeCustomSelects(except = null) {
   }
 }
 
-function setupCustomSelect({ rootId, selectId, triggerId, menuId, describe, icon, onSync }) {
+function setupCustomSelect({ rootId, selectId, triggerId, menuId, optionsId = menuId, describe, icon, onSync }) {
   const root = el(rootId);
   const select = el(selectId);
   const trigger = el(triggerId);
   const menu = el(menuId);
-  menu.replaceChildren();
+  const options = el(optionsId);
+  root.customSelectAbort?.abort();
+  if (root.customSelectController) {
+    const previous = customSelectControllers.indexOf(root.customSelectController);
+    if (previous >= 0) customSelectControllers.splice(previous, 1);
+  }
+  const events = new AbortController();
+  options.replaceChildren();
 
   for (const option of select.options) {
     const button = document.createElement("button");
@@ -103,7 +113,7 @@ function setupCustomSelect({ rootId, selectId, triggerId, menuId, describe, icon
     check.setAttribute("aria-hidden", "true");
     check.innerHTML = '<svg viewBox="0 0 20 20" fill="none"><path d="m5.5 10 3 3 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     button.append(copy, check);
-    menu.append(button);
+    options.append(button);
   }
 
   const controller = {
@@ -120,7 +130,7 @@ function setupCustomSelect({ rootId, selectId, triggerId, menuId, describe, icon
       menu.scrollTop = 0;
     },
     sync() {
-      for (const button of menu.querySelectorAll(".custom-select__option")) {
+      for (const button of options.querySelectorAll(".custom-select__option")) {
         button.setAttribute("aria-selected", String(button.dataset.value === select.value));
       }
       onSync?.(select.selectedOptions[0]);
@@ -130,16 +140,16 @@ function setupCustomSelect({ rootId, selectId, triggerId, menuId, describe, icon
   trigger.addEventListener("click", () => {
     if (root.classList.contains("is-open")) controller.close();
     else controller.open();
-  });
+  }, { signal: events.signal });
 
   trigger.addEventListener("keydown", (event) => {
     if (["ArrowDown", "Enter", " "].includes(event.key) && !root.classList.contains("is-open")) {
       event.preventDefault();
       controller.open();
     }
-  });
+  }, { signal: events.signal });
 
-  menu.addEventListener("click", (event) => {
+  options.addEventListener("click", (event) => {
     const optionButton = event.target.closest(".custom-select__option");
     if (!optionButton) return;
     select.value = optionButton.dataset.value;
@@ -147,20 +157,22 @@ function setupCustomSelect({ rootId, selectId, triggerId, menuId, describe, icon
     controller.sync();
     controller.close();
     trigger.focus();
-  });
+  }, { signal: events.signal });
 
   root.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || !root.classList.contains("is-open")) return;
     event.preventDefault();
     controller.close();
     trigger.focus();
-  });
+  }, { signal: events.signal });
 
   document.addEventListener("pointerdown", (event) => {
     if (!root.contains(event.target)) controller.close();
-  });
+  }, { signal: events.signal });
 
   customSelectControllers.push(controller);
+  root.customSelectAbort = events;
+  root.customSelectController = controller;
   controller.sync();
   return controller;
 }
@@ -456,7 +468,7 @@ function applyToNode() {
   note.hidden = false;
 }
 
-function renderTunnelOptions() {
+function renderTunnelOptions(selectedId = el("tunnel-select").value || TUNNELS[0]?.id || "custom") {
   const select = el("tunnel-select");
   select.replaceChildren();
   for (const tunnel of allTunnels()) {
@@ -469,19 +481,47 @@ function renderTunnelOptions() {
   custom.value = "custom";
   custom.textContent = "Other…";
   select.append(custom);
-  selectTunnel(TUNNELS[0]?.id ?? "custom");
+  selectTunnel(findTunnel(selectedId) ? selectedId : (TUNNELS[0]?.id ?? "custom"));
   setupCustomSelect({
     rootId: "tunnel-picker",
     selectId: "tunnel-select",
     triggerId: "tunnel-trigger",
     menuId: "tunnel-menu",
+    optionsId: "tunnel-options",
     // Only the manual option gets fixed prose. A router describes itself once
     // it has been probed, and says nothing until then rather than inheriting a
     // sentence that was written about a different router.
-    describe: (id) =>
-      id === "custom" ? "Enter another router manually." : (findTunnel(id)?.note ?? ""),
+    describe: (id) => {
+      if (id === "custom") return "Enter another tunnel manually.";
+      const tunnel = findTunnel(id);
+      if (!Number.isFinite(tunnel?.registrations)) return tunnel?.note ?? "";
+      const access = tunnel.free ? "Free" : "Paid";
+      const connections = `${tunnel.registrations} connection${tunnel.registrations === 1 ? "" : "s"}`;
+      return [connections, access, tunnel.note]
+        .filter(Boolean).join(" · ");
+    },
     onSync: (option) => { el("tunnel-selected-label").textContent = option?.textContent ?? "Other…"; },
   });
+}
+
+function renderTunnelStatus(tunnel) {
+  const status = el("tunnel-status");
+  const connections = el("tunnel-connections");
+  const paid = el("tunnel-paid");
+  const hasCount = Number.isFinite(tunnel?.registrations);
+  const count = hasCount ? tunnel.registrations : 0;
+  connections.hidden = !hasCount;
+  el("tunnel-connection-count").textContent = hasCount ? String(count) : "";
+  paid.hidden = tunnel?.free !== false;
+  status.hidden = !hasCount && paid.hidden;
+  status.setAttribute("aria-label", [
+    hasCount ? `${count} active tunnel connection${count === 1 ? "" : "s"}` : "",
+    paid.hidden ? "" : "Paid tunnel",
+  ].filter(Boolean).join(", "));
+
+  const note = el("tunnel-note");
+  note.textContent = tunnel?.note ?? "";
+  note.hidden = !note.textContent;
 }
 
 function selectTunnel(id) {
@@ -493,9 +533,9 @@ function selectTunnel(id) {
     // Each router pins its own implementation; carrying the previous router's
     // pin over is the commonest reason a node is refused registration.
     el("tunnel-impl").value = tunnel.impl;
-    el("tunnel-note").textContent = tunnel.note ?? "";
+    renderTunnelStatus(tunnel);
   } else {
-    el("tunnel-note").textContent = "";
+    renderTunnelStatus(null);
   }
 }
 
@@ -508,7 +548,7 @@ function syncTunnelPickerFromPeer() {
   if (select.value === wanted) return;
   select.value = wanted;
   el("tunnel-selected-label").textContent = match?.name ?? "Other…";
-  el("tunnel-note").textContent = match?.note ?? "";
+  renderTunnelStatus(match);
   for (const button of el("tunnel-menu").querySelectorAll(".custom-select__option")) {
     button.setAttribute("aria-selected", String(button.dataset.value === wanted));
   }
@@ -527,14 +567,15 @@ async function refreshSelectedTunnel() {
   const note = el("tunnel-discover-note");
   const probe = await probeTunnel(peer, { timeoutMs: 8000 });
   if (!probe) return;
+  const live = asTunnelEntry(probe);
+  liveTunnels.set(probe.peer.replace(/\/+$/, ""), live);
   if (probe.impl && probe.impl !== el("tunnel-impl").value) {
     el("tunnel-impl").value = probe.impl;
     render();
   }
-  note.textContent =
-    `Live: ${describePrice(probe)}, ${probe.registrations} node` +
-    `${probe.registrations === 1 ? "" : "s"} connected.`;
-  note.hidden = false;
+  renderTunnelStatus(live);
+  note.textContent = "";
+  note.hidden = true;
 }
 
 async function runTunnelDiscovery({ quiet = false } = {}) {
@@ -557,23 +598,24 @@ async function runTunnelDiscovery({ quiet = false } = {}) {
       .filter((tunnel) => !known.has(tunnel.peer))
       .map(asTunnelEntry);
     const current = el("tunnel-select").value;
-    renderTunnelOptions();
-    if (findTunnel(current)) el("tunnel-select").value = current;
+    renderTunnelOptions(current);
     // On the background pass say nothing unless something was found -- an
     // empty registry is the normal state today and is not news on page load.
-    if (!quiet || discoveredTunnels.length) {
+    if (!tunnels.length && !quiet) {
       note.hidden = false;
-      note.textContent = discoveredTunnels.length
-        ? `Found ${discoveredTunnels.length} router${discoveredTunnels.length === 1 ? "" : "s"} ` +
-          `from ${candidates} location record${candidates === 1 ? "" : "s"}.`
-        : `No new routers among ${candidates} location records. ` +
-          `A node only becomes findable once it publishes one.`;
+      note.textContent = "No tunnels found.";
+    } else {
+      note.textContent = "";
+      note.hidden = true;
     }
   } catch (exc) {
-    if (!quiet) note.textContent = `Could not search: ${exc?.message ?? exc}`;
+    if (!quiet) {
+      note.hidden = false;
+      note.textContent = `Could not search: ${exc?.message ?? exc}`;
+    }
   } finally {
     button.disabled = false;
-    button.textContent = "Find routers";
+    button.textContent = "Find tunnels";
   }
 }
 
@@ -674,12 +716,12 @@ function bindEvents() {
   });
   el("tunnel-select").addEventListener("change", (event) => {
     if (event.target.value !== "custom") selectTunnel(event.target.value);
-    else el("tunnel-note").textContent = "";
+    else renderTunnelStatus(null);
     render();
     refreshSelectedTunnel();
   });
   el("tunnel-discover").addEventListener("click", runTunnelDiscovery);
-  // A hand-typed router gets the same treatment once the field settles.
+  // A hand-typed tunnel gets the same treatment once the field settles.
   el("tunnel-peer").addEventListener("change", () => refreshSelectedTunnel());
   el("zone-select").addEventListener("change", (event) => {
     if (event.target.value !== "custom") selectZone(event.target.value);

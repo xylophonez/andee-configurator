@@ -133,7 +133,7 @@ export const CAPABILITIES = [
   {
     id: "tunnel",
     name: "Public access",
-    blurb: "Give the node a public URL through the tunnel router.",
+    blurb: "Give the node a public URL through a tunnel.",
     adds: ["on.start: tunnel connect", "trusted-devices: tunnel@1.0"],
   },
   {
@@ -165,7 +165,7 @@ export const PROFILES = [
   {
     id: "tunnel",
     name: "Tunnelled node",
-    blurb: "Reachable on a public URL through the tunnel router.",
+    blurb: "Reachable on a public URL through a tunnel.",
     tunnel: true,
   },
   {
