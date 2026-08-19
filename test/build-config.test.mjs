@@ -8,7 +8,7 @@ const zone = ZONES[0];
 
 const base = {
   tunnelPeer: TUNNEL_PEER,
-  tunnelWorkers: "3",
+  tunnelWorkers: "8",
   tunnelImpl: TUNNEL_IMPL,
   zoneName: zone.name,
   zonePeer: zone.peer,
@@ -31,7 +31,7 @@ test("tunnel profile pins the trusted implementation and a connect hook", () => 
   assert.equal(hook.device, "tunnel@1.0");
   assert.equal(hook.path, "connect");
   assert.equal(hook.peer, TUNNEL_PEER);
-  assert.equal(hook.workers, 3);
+  assert.equal(hook.workers, 8);
   assert.equal(config["trusted-devices"]["tunnel@1.0"], TUNNEL_IMPL);
 });
 

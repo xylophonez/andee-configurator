@@ -74,6 +74,11 @@ address and the URL stops resolving.
   before any device is contacted, a stale `tunnel@1.0` pin is the usual cause;
   check what the router currently trusts at
   `<router>/~meta@1.0/info/trusted-devices/tunnel@1.0`.
+- **The tunnel defaults to eight workers.** Bazar opens four gateway reads at
+  once during startup, and the router rejects work beyond the registered
+  worker pool instead of queueing it. Eight leaves room for that burst and
+  background traffic; paid-router starter quotas must be sized for the higher
+  idle registration traffic.
 
 ## Layout
 

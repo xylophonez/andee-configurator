@@ -430,7 +430,10 @@ function renderNodeIdentity() {
 function boot() {
   renderCapabilities();
   el("tunnel-peer").value = TUNNEL_PEER;
-  el("tunnel-workers").value = "3";
+  // Bazar opens four gateway reads during bootstrap. Keep enough listeners for
+  // that burst plus ordinary background traffic; routers reject excess work
+  // rather than queueing it.
+  el("tunnel-workers").value = "8";
   el("tunnel-impl").value = TUNNEL_IMPL;
   el("price").value = "0";
   el("max-items").value = "1000";
