@@ -4,11 +4,9 @@
 
 import {
   BUNDLER_NAME_RESOLVERS,
-  BUNDLER_SIGNERS,
   BUNDLER_TRUSTED,
   CAPABILITIES,
   OUROBOROS_NAME_RESOLVERS,
-  OUROBOROS_SIGNERS,
   OUROBOROS_TRUSTED,
   P4_BOOTSTRAP_DEVICE,
   PROFILES,
@@ -17,9 +15,20 @@ import {
 
 export const RESERVED_BOOT_KEYS = [
   "access-remote-cache-for-client",
+  "arweave-index-blocks",
   "arweave-index-store",
+  "arweave-scheduler-block-batch",
+  "arweave-scheduler-block-workers",
+  "arweave-scheduler-confirmation-depth",
+  "arweave-scheduler-fetch-attempts",
+  "arweave-scheduler-fetch-retry",
+  "arweave-scheduler-from",
+  "arweave-scheduler-header-workers",
+  "arweave-scheduler-sync",
+  "arweave-scheduler-sync-interval",
   "cache-control",
   "forge-bootstrap",
+  "gateway",
   "http-extra-opts",
   "load-remote-devices",
   "loaded-device-store",
@@ -28,8 +37,12 @@ export const RESERVED_BOOT_KEYS = [
   "preloaded-devices-index",
   "preloaded-store",
   "priv-store",
+  "route-owners",
+  "routes",
+  "scheduler-store",
   "store",
   "store-defaults",
+  "trusted-device-signers",
 ];
 
 export function profileById(id) {
@@ -66,6 +79,14 @@ export function buildConfig(choices) {
   const startHooks = [];
   const trusted = {};
   const nameResolverLists = [];
+
+  // This is a semantic switch, not a device or tuning override. The AndEE
+  // boot-config store expands it to the measured scheduler pin and settings.
+  // Keeping false explicit makes removing the layer an actual toggle instead
+  // of falling back to the base image's enabled default.
+  config["andee-capabilities"] = {
+    scheduler: activeLayers.has("scheduler"),
+  };
 
   for (const layer of layers) {
     if (layer === "tunnel") {
@@ -104,7 +125,6 @@ export function buildConfig(choices) {
       // it the device loads and answers, but every tool call fails closed on 503.
       Object.assign(trusted, OUROBOROS_TRUSTED);
       nameResolverLists.push(OUROBOROS_NAME_RESOLVERS);
-      config["trusted-device-signers"] = OUROBOROS_SIGNERS;
       config["lapee-allow-request-trusted-ca"] = true;
       config["http-client-prefer-ipv4"] = true;
       if (!activeLayers.has("bundler")) config["lapee-profile"] = "ouroboros-tunnel";
@@ -120,7 +140,6 @@ export function buildConfig(choices) {
         "lapee-profile": "aopayment-bundler-p4-paid-remote",
         "lapee-allow-request-trusted-ca": true,
         "http-client-prefer-ipv4": true,
-        "trusted-device-signers": BUNDLER_SIGNERS,
         "bundler-beneficiary": beneficiary,
         "bundler-ans104": "https://up.arweave.net:443",
         "bundler-premium": 0,
@@ -161,7 +180,6 @@ export function buildConfig(choices) {
           ],
         },
       });
-      config.on = { ...(config.on || {}), request: [{ device: "manifest@1.0" }] };
     }
   }
 
@@ -188,6 +206,7 @@ export function buildConfig(choices) {
 function layersForProfile(profile) {
   if (!profile) return [];
   const layers = [];
+  if (profile.scheduler) layers.push("scheduler");
   if (profile.tunnel) layers.push("tunnel");
   if (profile.zone) layers.push("zone");
   if (profile.ouroboros) layers.push("ouroboros");

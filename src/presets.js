@@ -131,6 +131,12 @@ export const OUROBOROS_SIGNERS = BUNDLER_SIGNERS;
 // enable any combination and control their application order.
 export const CAPABILITIES = [
   {
+    id: "scheduler",
+    name: "Scheduler",
+    blurb: "Keep a local, persistent Arweave scheduler index in sync.",
+    adds: ["andee-capabilities.scheduler: true", "measured scheduler device and tuning"],
+  },
+  {
     id: "tunnel",
     name: "Public access",
     blurb: "Give the node a public URL through a tunnel.",
@@ -160,18 +166,21 @@ export const PROFILES = [
   {
     id: "plain",
     name: "Plain node",
-    blurb: "Runs locally. No tunnel, no zone, not reachable from outside.",
+    blurb: "Runs locally with the measured scheduler. No public tunnel.",
+    scheduler: true,
   },
   {
     id: "tunnel",
     name: "Tunnelled node",
-    blurb: "Reachable on a public URL through a tunnel.",
+    blurb: "Scheduler plus a public URL through a tunnel.",
+    scheduler: true,
     tunnel: true,
   },
   {
     id: "zone-member",
     name: "Zone member",
     blurb: "Tunnelled, and joins a zone on boot. Admission is attested.",
+    scheduler: true,
     tunnel: true,
     zone: "join",
   },
@@ -179,6 +188,7 @@ export const PROFILES = [
     id: "zone-host",
     name: "Zone host",
     blurb: "Tunnelled, and may create a zone others attest into.",
+    scheduler: true,
     tunnel: true,
     zone: "host",
   },

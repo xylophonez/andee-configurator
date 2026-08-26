@@ -2,7 +2,7 @@
 
 Operator-config builder for a **PermawebOS Node** running on Android.
 
-Pick a profile, fill in a few fields, download `next.json`, and import it from
+Pick independent capabilities, fill in a few fields, download `next.json`, and import it from
 the node's config picker. The page runs entirely in the browser and uploads
 nothing.
 
@@ -10,7 +10,7 @@ nothing.
 
 ```sh
 npm run serve   # http://127.0.0.1:5482/
-npm test        # 12 tests
+npm test
 npm run check   # syntax check
 ```
 
@@ -21,11 +21,14 @@ No build step. It is plain ES modules and one stylesheet.
 An **operator** config. The node merges it over its measured base config on the
 next boot. That distinction matters:
 
-- Storage and loader keys are **reserved** — `store`, `match-index`,
+- Storage, scheduler tuning, and loader keys are **reserved** — `store`, `match-index`,
   `priv-store`, `arweave-index-store`, `preloaded-store`, `store-defaults`,
-  `load-remote-devices` and friends. The Android boot-config store strips them
+  `scheduler-store`, `arweave-scheduler-*`, `load-remote-devices` and friends. The Android boot-config store strips them
   from operator configs and restores the measured base values. This tool never
   emits them, and a test asserts that for every profile.
+- The Scheduler control emits only `andee-capabilities.scheduler`. AndEE expands
+  that boolean to its measured device implementation and phone-safe tuning. A
+  downloaded profile cannot replace the scheduler code or its trust pin.
 - Everything else merges, including `on/start` hooks, which are appended ahead
   of the base hooks (boot measurement, zone start).
 
@@ -33,8 +36,8 @@ next boot. That distinction matters:
 
 | Profile | What you get |
 | --- | --- |
-| Plain node | Local only. No tunnel, no zone. |
-| Tunnelled node | Public URL via the tunnel router. |
+| Plain node | Local scheduler. No tunnel or zone. |
+| Tunnelled node | Scheduler plus a public URL via the tunnel router. |
 | Zone member | Tunnelled, joins a zone on boot. |
 | Zone host | Tunnelled, may create a zone (`zone-init-allow`). |
 | Bundler | Paid-bundler profile behind a tunnel. |
@@ -63,6 +66,9 @@ address and the URL stops resolving.
 - **There is no built-in bundler device.** `~bundler@1.0` is assembled at boot:
   the `lapee-p4-bootstrap@1.0` start hook installs it, and `trusted-devices` /
   `name-resolvers` pin the payment, pricing, settlement and GC devices it needs.
+- **Exact device pins do not need a global signer allow-list.** Bundler and
+  Ouroboros profiles emit their complete `trusted-devices` maps and do not
+  widen `trusted-device-signers`.
 - **`render-index-page` does nothing.** It appears in shipped configs and looks
   like the switch for the hyperbuddy UI, but the key does not exist in the
   pinned HyperBEAM. `default-index` is the one actually read, which is what the
@@ -74,11 +80,9 @@ address and the URL stops resolving.
   before any device is contacted, a stale `tunnel@1.0` pin is the usual cause;
   check what the router currently trusts at
   `<router>/~meta@1.0/info/trusted-devices/tunnel@1.0`.
-- **The tunnel defaults to eight workers.** Bazar opens four gateway reads at
-  once during startup, and the router rejects work beyond the registered
-  worker pool instead of queueing it. Eight leaves room for that burst and
-  background traffic; paid-router starter quotas must be sized for the higher
-  idle registration traffic.
+- **The tunnel defaults to three workers.** That is the measured scheduler-node
+  default and avoids paid idle registration burn. Serving roles can raise the
+  visible worker control when their actual concurrency requires it.
 
 ## Layout
 

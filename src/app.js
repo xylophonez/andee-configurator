@@ -40,12 +40,13 @@ const findTunnelByPeer = (peer) => {
 };
 
 const state = {
-  layers: ["tunnel"],
+  layers: ["scheduler", "tunnel"],
   zoneMode: "join",
   advanced: false,
 };
 
 const CAPABILITY_ICONS = {
+  scheduler: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5v4.8l3.2 2M5.2 8.5H2.8v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.2 8.3A9.8 9.8 0 0 1 12 2.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
   tunnel: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 19v-7a8 8 0 0 1 16 0v7M8 19v-7a4 4 0 0 1 8 0v7M3 19h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   zone: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M8.5 8.5a5 5 0 0 0 0 7m7-7a5 5 0 0 1 0 7M5.5 5.5a9.2 9.2 0 0 0 0 13m13-13a9.2 9.2 0 0 1 0 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
   bundler: '<svg viewBox="0 0 24 24" fill="none"><path d="m4.5 8 7.5-4 7.5 4v8L12 20l-7.5-4V8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m4.8 8.2 7.2 4 7.2-4M12 12.2V20" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
@@ -430,10 +431,9 @@ function renderNodeIdentity() {
 function boot() {
   renderCapabilities();
   el("tunnel-peer").value = TUNNEL_PEER;
-  // Bazar opens four gateway reads during bootstrap. Keep enough listeners for
-  // that burst plus ordinary background traffic; routers reject excess work
-  // rather than queueing it.
-  el("tunnel-workers").value = "8";
+  // Three listeners is the Pixel-proven scheduler-node default. Serving roles
+  // can raise it explicitly; the value remains visible beside the tunnel.
+  el("tunnel-workers").value = "3";
   el("tunnel-impl").value = TUNNEL_IMPL;
   el("price").value = "0";
   el("max-items").value = "1000";

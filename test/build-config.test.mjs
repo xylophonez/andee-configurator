@@ -8,7 +8,7 @@ const zone = ZONES[0];
 
 const base = {
   tunnelPeer: TUNNEL_PEER,
-  tunnelWorkers: "8",
+  tunnelWorkers: "3",
   tunnelImpl: TUNNEL_IMPL,
   zoneName: zone.name,
   zonePeer: zone.peer,
@@ -22,7 +22,22 @@ test("plain profile emits no tunnel, zone or bundler keys", () => {
   assert.equal(config.on, undefined);
   assert.equal(config["zone-allow"], undefined);
   assert.equal(config["bundler-beneficiary"], undefined);
-  assert.equal(config["andee-profile-source"], "andee-configurator/plain");
+  assert.deepEqual(config["andee-capabilities"], { scheduler: true });
+  assert.equal(config["andee-profile-source"], "andee-configurator/scheduler");
+  assert.equal(config["arweave-scheduler-sync"], undefined);
+  assert.equal(config["trusted-devices"], undefined);
+});
+
+test("scheduler is a semantic toggle, never a core or device override", () => {
+  const enabled = buildConfig({ ...base, layers: ["scheduler"] });
+  const disabled = buildConfig({ ...base, layers: [] });
+  assert.deepEqual(enabled["andee-capabilities"], { scheduler: true });
+  assert.deepEqual(disabled["andee-capabilities"], { scheduler: false });
+  for (const config of [enabled, disabled]) {
+    assert.equal(config["arweave-scheduler-sync"], undefined);
+    assert.equal(config["scheduler-store"], undefined);
+    assert.equal(config["trusted-devices"], undefined);
+  }
 });
 
 test("tunnel profile pins the trusted implementation and a connect hook", () => {
@@ -31,7 +46,7 @@ test("tunnel profile pins the trusted implementation and a connect hook", () => 
   assert.equal(hook.device, "tunnel@1.0");
   assert.equal(hook.path, "connect");
   assert.equal(hook.peer, TUNNEL_PEER);
-  assert.equal(hook.workers, 8);
+  assert.equal(hook.workers, 3);
   assert.equal(config["trusted-devices"]["tunnel@1.0"], TUNNEL_IMPL);
 });
 
@@ -53,7 +68,8 @@ test("bundler profile installs the p4 bootstrap hook and pins its devices", () =
   assert.ok(devices.includes("RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ"));
   assert.equal(config["bundler-beneficiary"], base.beneficiary);
   assert.ok(config["trusted-devices"]["lapee-p4-bootstrap@1.0"]);
-  assert.deepEqual(config.on.request, [{ device: "manifest@1.0" }]);
+  assert.equal(config.on.request, undefined);
+  assert.equal(config["trusted-device-signers"], undefined);
 });
 
 test("bundler without a beneficiary is refused rather than silently misconfigured", () => {
@@ -104,6 +120,9 @@ test("the reserved key list matches the node's own", () => {
   assert.ok(RESERVED_BOOT_KEYS.includes("store"));
   assert.ok(RESERVED_BOOT_KEYS.includes("load-remote-devices"));
   assert.ok(RESERVED_BOOT_KEYS.includes("preloaded-store"));
+  assert.ok(RESERVED_BOOT_KEYS.includes("arweave-scheduler-sync"));
+  assert.ok(RESERVED_BOOT_KEYS.includes("scheduler-store"));
+  assert.ok(RESERVED_BOOT_KEYS.includes("trusted-device-signers"));
 });
 
 test("ouroboros profile pins the published andock device by spec and implementation", () => {
@@ -112,6 +131,7 @@ test("ouroboros profile pins the published andock device by spec and implementat
   assert.equal(config["trusted-devices"]["andock@1.0"], ANDOCK_IMPL);
   assert.equal(config["trusted-devices"][ANDOCK_SPEC], ANDOCK_IMPL);
   assert.equal(config["lapee-profile"], "ouroboros-tunnel");
+  assert.equal(config["trusted-device-signers"], undefined);
   assert.equal(config.on.start[0].device, "tunnel@1.0");
 });
 
@@ -138,7 +158,7 @@ test("ouroboros and bundler combine without duplicating a resolver", () => {
 test("capabilities are additive instead of exclusive", () => {
   const config = buildConfig({
     ...base,
-    layers: ["tunnel", "zone", "ouroboros", "bundler"],
+    layers: ["scheduler", "tunnel", "zone", "ouroboros", "bundler"],
     zoneMode: "join",
   });
   assert.ok(config.on.start.some((hook) => hook.device === "tunnel@1.0"));
@@ -146,7 +166,8 @@ test("capabilities are additive instead of exclusive", () => {
   assert.deepEqual(config["zone-allow"], { [zone.name]: zone.peer });
   assert.equal(config["trusted-devices"]["andock@1.0"], ANDOCK_IMPL);
   assert.equal(config["bundler-beneficiary"], base.beneficiary);
-  assert.equal(config["andee-profile-source"], "andee-configurator/tunnel+zone+ouroboros+bundler");
+  assert.deepEqual(config["andee-capabilities"], { scheduler: true });
+  assert.equal(config["andee-profile-source"], "andee-configurator/scheduler+tunnel+zone+ouroboros+bundler");
 });
 
 test("layer order controls start-hook order", () => {
