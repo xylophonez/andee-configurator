@@ -1,5 +1,5 @@
 {
-  "_note": "LapEE tunnel transport and location template from the August physical pilot. No payment or operator payout. Review the implementation pin and signer before use.",
+  "_note": "LapEE tunnel transport and location template from the August physical pilot. One-hour TTL and boot-only publication require renewal for continuous discovery. No payment or operator payout. Review the implementation pin and signer before use.",
   "trusted-device-signers": [
     "kaYP9bJtpqON8Kyy3RbqnqdtDBDUsPTQTNUCvZtKiFI"
   ],

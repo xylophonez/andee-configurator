@@ -188,6 +188,37 @@ test("a tunneled phone with its own client pool is not listed as a provider", as
   );
 });
 
+test("a provider's numbered request-hook links are materialized on the same node", async () => {
+  await withFetch(
+    {
+      "/~tunnel@1.0/status": { "open-registrations": 1, status: 200 },
+      "/~meta@1.0/info/on/request/1": { device: "manifest@1.0", status: 200 },
+      "/~meta@1.0/info/on/request/2": routerHook,
+      "/~meta@1.0/info/on/request": {
+        "1+link": "opaque-first-hook", "2+link": "opaque-tunnel-hook", status: 200,
+      },
+    },
+    async () => {
+      const probe = await probeTunnel("https://linked-router.example");
+      assert.equal(probe.peer, "https://linked-router.example");
+      assert.equal(probe.registrations, 1);
+    },
+  );
+});
+
+test("a numbered client hook does not make a tunneled phone a provider", async () => {
+  await withFetch(
+    {
+      "/~tunnel@1.0/status": {
+        "open-registrations": 0, "open-client-pools": 1, status: 200,
+      },
+      "/~meta@1.0/info/on/request/1": { device: "tunnel@1.0", path: "connect", status: 200 },
+      "/~meta@1.0/info/on/request": { "1+link": "opaque-client-hook", status: 200 },
+    },
+    async () => assert.equal(await probeTunnel("https://linked-client.example"), null),
+  );
+});
+
 test("a new router with no registrations keeps its listing when its request hook is present", async () => {
   await withFetch(
     {

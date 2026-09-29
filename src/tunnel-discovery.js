@@ -238,6 +238,25 @@ function hasTunnelRequestHook(hooks) {
     /^\d+$/.test(key) && hasTunnelRequestHook(value));
 }
 
+// Some HyperBEAM nodes render an ordered hook list as `1+link`, `2+link`,
+// rather than embedding each hook. Read only those numbered paths on the same
+// node; never follow the link values or probe an unbounded collection.
+async function hasAdvertisedTunnelRequestHook(base, hooks, timeoutMs, signal) {
+  if (hasTunnelRequestHook(hooks)) return true;
+  if (!hooks || typeof hooks !== "object" || Array.isArray(hooks)) return false;
+  const indexes = Object.keys(hooks)
+    .map((key) => /^([1-9]\d*)\+link$/.exec(key)?.[1])
+    .filter(Boolean)
+    .map(Number)
+    .filter((index) => Number.isSafeInteger(index) && index <= 16)
+    .sort((a, b) => a - b)
+    .slice(0, 16);
+  if (!indexes.length) return false;
+  const materialized = await Promise.all(indexes.map((index) =>
+    getJSON(`${base}/~meta@1.0/info/on/request/${index}`, timeoutMs, signal)));
+  return materialized.some(hasTunnelRequestHook);
+}
+
 /** Ask one node whether it advertises the public tunnel handler.
  *
  *  Status is shared by routers and clients. A matching on-request hook is a
@@ -260,7 +279,8 @@ export async function probeTunnel(url, { timeoutMs = 8000, signal } = {}) {
   ]);
 
   const registrations = Number(status?.["open-registrations"] ?? NaN);
-  if (!Number.isFinite(registrations) || !hasTunnelRequestHook(requestHooks)) return null;
+  if (!Number.isFinite(registrations) ||
+      !await hasAdvertisedTunnelRequestHook(base, requestHooks, timeoutMs, signal)) return null;
 
   const priced = Object.entries(rates ?? {})
     .filter(([key, value]) => key !== "status" && Number(value) > 0)
