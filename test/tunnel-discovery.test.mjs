@@ -57,6 +57,7 @@ function graphqlReply(records) {
 }
 
 const realFetch = globalThis.fetch;
+const routerHook = { device: "tunnel@1.0", path: "request", status: 200 };
 function withFetch(routes, run) {
   globalThis.fetch = stubFetch(routes);
   return run().finally(() => { globalThis.fetch = realFetch; });
@@ -169,10 +170,55 @@ test("a node that does not answer the tunnel status is not a router", async () =
   );
 });
 
+test("a tunneled phone with its own client pool is not listed as a provider", async () => {
+  await withFetch(
+    {
+      "/graphql": graphqlReply([{ url: "https://phone.smoke.solutions", address: "PHONE" }]),
+      "/~tunnel@1.0/status": {
+        "open-registrations": 0, "open-client-pools": 1, "open-client-workers": 8, status: 200,
+      },
+      "/~meta@1.0/info/on/request": { "1+link": "client-hook", status: 200 },
+      "/~meta@1.0/info/address": "PHONE",
+    },
+    async () => {
+      const result = await discoverTunnels({});
+      assert.equal(result.candidates, 1);
+      assert.deepEqual(result.tunnels, []);
+    },
+  );
+});
+
+test("a new router with no registrations keeps its listing when its request hook is present", async () => {
+  await withFetch(
+    {
+      "/~tunnel@1.0/status": { "open-registrations": 0, status: 200 },
+      "/~meta@1.0/info/on/request": [
+        { device: "manifest@1.0" }, routerHook,
+      ],
+    },
+    async () => {
+      const probe = await probeTunnel("https://new-router.example");
+      assert.equal(probe.registrations, 0);
+      assert.equal(probe.peer, "https://new-router.example");
+    },
+  );
+});
+
+test("a status response without a tunnel request hook is not provider evidence", async () => {
+  await withFetch(
+    {
+      "/~tunnel@1.0/status": { "open-registrations": 99, status: 200 },
+      "/~meta@1.0/info/on/request": { device: "manifest@1.0", status: 200 },
+    },
+    async () => assert.equal(await probeTunnel("https://not-a-router.example"), null),
+  );
+});
+
 test("a router reports its live pin, metering and registration count", async () => {
   await withFetch(
     {
       "/~tunnel@1.0/status": { "open-registrations": 16, status: 200 },
+      "/~meta@1.0/info/on/request": routerHook,
       "/~meta@1.0/info/trusted-devices/tunnel%401.0": "PINPINPIN\n",
       "/~meta@1.0/info/metering-rates": {
         "meta-bytes-in": 1, "meta-bytes-out": 0, "beam-reductions": 0, status: 200,
@@ -194,6 +240,7 @@ test("zero rates do not imply free service", async () => {
   await withFetch(
     {
       "/~tunnel@1.0/status": { "open-registrations": 3, status: 200 },
+      "/~meta@1.0/info/on/request": routerHook,
       "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 0, status: 200 },
     },
     async () => {
@@ -208,6 +255,7 @@ test("an unreadable pin is reported as unknown, not guessed", async () => {
   await withFetch(
     {
       "/~tunnel@1.0/status": { "open-registrations": 1, status: 200 },
+      "/~meta@1.0/info/on/request": routerHook,
       // Device names contain `@`, which a node renders into an illegal HTTP
       // header name; strict clients reject the whole response.
       "/~meta@1.0/info/trusted-devices": "throw",
@@ -306,6 +354,7 @@ test("matching the signer proves no measurement verdict", async () => {
     {
       "/graphql": graphqlReply([{ url: "https://honest.example", address: "NODEADDR" }]),
       "/~tunnel@1.0/status": { "open-registrations": 2, status: 200 },
+      "/~meta@1.0/info/on/request": routerHook,
       "/~meta@1.0/info/address": "NODEADDR",
       "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 1, status: 200 },
     },
@@ -327,6 +376,7 @@ test("a record claiming someone else's node is marked unverified", async () => {
     {
       "/graphql": graphqlReply([{ url: "https://real-tunnel.example", address: "IMPOSTOR" }]),
       "/~tunnel@1.0/status": { "open-registrations": 9, status: 200 },
+      "/~meta@1.0/info/on/request": routerHook,
       "/~meta@1.0/info/address": "THE-REAL-NODE",
       "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 1, status: 200 },
     },
@@ -347,6 +397,7 @@ test("a competing URL claim cannot displace the real node's listing", async () =
       { url: "https://provider.example", address: "IMPOSTOR", id: "fake", published: 2000 },
     ]),
     "/~tunnel@1.0/status": { "open-registrations": 2 },
+    "/~meta@1.0/info/on/request": routerHook,
     "/~meta@1.0/info/address": "REAL",
     "/~meta@1.0/info/metering-rates": { "request-bytes": 1 },
   }, async () => {
@@ -366,6 +417,7 @@ test("a bounded probe reports that the provider list is incomplete", async () =>
       { url: "https://two.example", address: "TWO", published: 1000 },
     ]),
     "/~tunnel@1.0/status": { "open-registrations": 1 },
+    "/~meta@1.0/info/on/request": routerHook,
     "one.example/~meta@1.0/info/address": "ONE",
   }, async () => {
     const result = await discoverTunnels({ maxProbes: 1 });
@@ -384,6 +436,7 @@ test("matching location identities sort above mismatches", async () => {
       ]),
       "busy-fake.example/~tunnel@1.0/status": { "open-registrations": 99, status: 200 },
       "quiet-real.example/~tunnel@1.0/status": { "open-registrations": 1, status: 200 },
+      "/~meta@1.0/info/on/request": routerHook,
       "busy-fake.example/~meta@1.0/info/address": "SOMEONE-ELSE",
       "quiet-real.example/~meta@1.0/info/address": "REAL",
       "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 1, status: 200 },

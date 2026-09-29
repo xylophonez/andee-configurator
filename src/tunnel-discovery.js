@@ -227,16 +227,26 @@ async function getText(url, timeoutMs, signal) {
   }
 }
 
-/** Ask one node whether it is a live tunnel router, and on what terms.
+// Routers and tunneled clients load the same device, so both answer status.
+// The public router config installs this request hook; a client-side connect
+// hook alone is not evidence that the URL can accept public tunnel traffic.
+function hasTunnelRequestHook(hooks) {
+  if (Array.isArray(hooks)) return hooks.some(hasTunnelRequestHook);
+  if (!hooks || typeof hooks !== "object") return false;
+  if (hooks.device === "tunnel@1.0" && hooks.path === "request") return true;
+  return Object.entries(hooks).some(([key, value]) =>
+    /^\d+$/.test(key) && hasTunnelRequestHook(value));
+}
+
+/** Ask one node whether it advertises the public tunnel handler.
  *
- *  Returns null unless `~tunnel@1.0/status` answers with a registration count.
- *  That single fact is what separates a tunnel from any other node, and it is
- *  demonstrated rather than claimed -- there is no "I am a tunnel" tag to
- *  trust, and inventing one would be trusting it. */
+ *  Status is shared by routers and clients. A matching on-request hook is a
+ *  configuration claim, not independent measurement or proof of delivery. */
 export async function probeTunnel(url, { timeoutMs = 8000, signal } = {}) {
   const base = url.replace(/\/+$/, "");
-  const [status, impl, rates, address] = await Promise.all([
+  const [status, requestHooks, impl, rates, address] = await Promise.all([
     getJSON(`${base}/~tunnel@1.0/status`, timeoutMs, signal),
+    getJSON(`${base}/~meta@1.0/info/on/request`, timeoutMs, signal),
     // Single key, not the whole map -- see the header note above.
     getText(
       `${base}/~meta@1.0/info/trusted-devices/tunnel%401.0`,
@@ -250,7 +260,7 @@ export async function probeTunnel(url, { timeoutMs = 8000, signal } = {}) {
   ]);
 
   const registrations = Number(status?.["open-registrations"] ?? NaN);
-  if (!Number.isFinite(registrations)) return null;
+  if (!Number.isFinite(registrations) || !hasTunnelRequestHook(requestHooks)) return null;
 
   const priced = Object.entries(rates ?? {})
     .filter(([key, value]) => key !== "status" && Number(value) > 0)
