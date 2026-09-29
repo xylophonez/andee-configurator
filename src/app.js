@@ -370,63 +370,6 @@ function moveLayerAround(sourceId, targetId, after = false) {
   refreshLayerUI();
 }
 
-// Inside the AndEE in-app browser the page can hand the config straight to the
-// node instead of making the operator download and re-pick a file.
-const bridge = typeof window !== "undefined" && window.AndeeBridge?.isAndee?.()
-  ? window.AndeeBridge
-  : null;
-
-function parseNodeInfo(raw) {
-  if (!raw) return null;
-  if (typeof raw === "object") return raw;
-  if (typeof raw !== "string") return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-function shortAddress(value) {
-  const address = String(value || "").trim();
-  if (address.length <= 16) return address;
-  return `${address.slice(0, 7)}…${address.slice(-5)}`;
-}
-
-// The shipped Android bridge currently exposes only isAndee() and
-// stageNextBootConfig(). This also supports the richer getNodeInfo() contract
-// when the app adds it, without inventing device information in browser preview.
-function renderNodeIdentity() {
-  document.querySelector("andee-phone")?.setAttribute("status", bridge ? "connected" : "disconnected");
-
-  if (!bridge) {
-    el("node-title").textContent = "No AndEE connected";
-    el("node-detail").textContent = "Open this page inside AndEE to read and apply node settings.";
-    return;
-  }
-
-  let info = null;
-  try {
-    info = parseNodeInfo(bridge.getNodeInfo?.());
-  } catch {
-    // An older bridge is still a real AndEE connection; it just cannot expose
-    // node metadata yet.
-  }
-
-  if (!info) {
-    el("node-title").textContent = "AndEE connected";
-    el("node-detail").textContent = "Configuration can be applied directly to this node.";
-    return;
-  }
-
-  const deviceName = info.deviceName || info.model || info.name || "This AndEE";
-  const address = info.nodeAddress || info.address;
-  const version = info.hyperbeamVersion || info.version;
-  const details = [shortAddress(address), version && `HyperBEAM ${version}`].filter(Boolean);
-  el("node-title").textContent = deviceName;
-  el("node-detail").textContent = details.join(" · ") || "Connected to the local HyperBEAM node.";
-}
-
 function boot() {
   renderCapabilities();
   el("tunnel-peer").value = TUNNEL_PEER;
@@ -435,17 +378,10 @@ function boot() {
   // rather than queueing it.
   el("tunnel-workers").value = "8";
   el("tunnel-impl").value = TUNNEL_IMPL;
-  el("price").value = "0";
   el("max-items").value = "1000";
   renderTunnelOptions();
   renderZoneOptions();
   bindEvents();
-  if (bridge) {
-    el("apply").hidden = false;
-    el("download").classList.remove("button--primary");
-    el("download").classList.add("button--secondary");
-  }
-  renderNodeIdentity();
   applyLayers();
   // Discover in the background. The picker is already usable at this point --
   // the bootstrap router is rendered and selected -- so this only ever adds to
@@ -453,22 +389,6 @@ function boot() {
   // still configure a node against the router it already has.
   runTunnelDiscovery({ quiet: true });
   refreshSelectedTunnel();
-}
-
-function applyToNode() {
-  if (!bridge || !lastConfigText) return;
-  const note = el("apply-note");
-  try {
-    const result = bridge.stageNextBootConfig(lastConfigText);
-    if (result === "staged") {
-      note.textContent = "Staged. Restart the node to apply.";
-    } else {
-      note.textContent = String(result);
-    }
-  } catch (exc) {
-    note.textContent = `Could not apply: ${exc?.message ?? exc}`;
-  }
-  note.hidden = false;
 }
 
 function renderTunnelOptions(selectedId = el("tunnel-select").value || TUNNELS[0]?.id || "custom") {
@@ -737,7 +657,7 @@ function bindEvents() {
   for (const id of [
     "tunnel-peer", "tunnel-workers", "tunnel-impl",
     "zone-name", "zone-peer",
-    "beneficiary", "price", "max-items", "disable-hyperbuddy",
+    "beneficiary", "max-items", "disable-hyperbuddy",
   ]) {
     el(id).addEventListener("input", (event) => {
       syncNumberStepper(event.target);
@@ -768,7 +688,6 @@ function bindEvents() {
     event.preventDefault();
     copy();
   });
-  el("apply").addEventListener("click", applyToNode);
 }
 
 function applyLayers() {
@@ -792,7 +711,6 @@ function currentChoices() {
     zoneName: el("zone-name").value,
     zonePeer: el("zone-peer").value,
     beneficiary: el("beneficiary").value,
-    price: el("price").value,
     maxItems: el("max-items").value,
     disableHyperbuddy: el("disable-hyperbuddy").checked,
   };

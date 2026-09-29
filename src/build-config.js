@@ -51,7 +51,6 @@ export function capabilityById(id) {
  * @param {string} [choices.zoneName]
  * @param {string} [choices.zonePeer]
  * @param {string} [choices.beneficiary]
- * @param {number} [choices.price]
  * @param {number} [choices.maxItems]
  * @param {boolean} [choices.disableHyperbuddy]
  */
@@ -128,7 +127,9 @@ export function buildConfig(choices) {
         "bundler-max-items": clampInt(choices.maxItems, 1, 10000, 1000),
         "bundler-max-bundle-dispatch-delay": 2000,
         "lapee-bundler-completed-item-retention-ms": 0,
-        "simple-pay-price": clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0),
+        // P4 routes bundler uploads to live Arweave-byte quotes in AO base
+        // units. Keep the legacy simple-pay default from the paid profile.
+        "simple-pay-price": 0,
         "ao-payment-ledger": "ledger",
         "ao-payment-ledger-path": "/ledger~node-process@1.0",
         "arweave-byte-price": "dynamic",
@@ -155,9 +156,9 @@ export function buildConfig(choices) {
         },
         "router-opts": {
           offered: [
-            { template: "/.*~process@1.0/.*", price: clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0) },
-            { template: "/~bundler@1.0/tx", price: clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0) },
-            { template: "/~bundler@1.0/item", price: clampInt(choices.price, 0, Number.MAX_SAFE_INTEGER, 0) },
+            { template: "/.*~process@1.0/.*", price: 0 },
+            { template: "/~bundler@1.0/tx", price: 0 },
+            { template: "/~bundler@1.0/item", price: 0 },
           ],
         },
       });

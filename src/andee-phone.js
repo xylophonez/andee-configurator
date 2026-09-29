@@ -55,8 +55,9 @@ class AndeePhoneElement extends HTMLElementBase {
 
   updateAccessibilityLabel() {
     if (!this.canvas) return;
-    const state = this.getAttribute("status") === "connected" ? "Connected" : "Disconnected";
-    this.canvas.setAttribute("aria-label", `${state} rotating wireframe AndEE phone`);
+    const status = this.getAttribute("status");
+    const prefix = status === "connected" ? "Connected " : status === "disconnected" ? "Disconnected " : "";
+    this.canvas.setAttribute("aria-label", `${prefix}rotating wireframe AndEE phone preview`);
   }
 
   resize() {
@@ -113,16 +114,18 @@ class AndeePhoneElement extends HTMLElementBase {
     ctx.arc(homeX, homeY, Math.max(1.1, width / 58), 0, Math.PI * 2);
     ctx.stroke();
 
-    drawStatus(
-      ctx,
-      this.getAttribute("status") === "connected" ? "connected" : "disconnected",
-      this.yaw,
-      centerX,
-      centerY,
-      scale,
-      width,
-      styles,
-    );
+    if (this.getAttribute("status") !== "preview") {
+      drawStatus(
+        ctx,
+        this.getAttribute("status") === "connected" ? "connected" : "disconnected",
+        this.yaw,
+        centerX,
+        centerY,
+        scale,
+        width,
+        styles,
+      );
+    }
   }
 }
 

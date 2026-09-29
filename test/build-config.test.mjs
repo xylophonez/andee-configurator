@@ -13,7 +13,6 @@ const base = {
   zoneName: zone.name,
   zonePeer: zone.peer,
   beneficiary: "kaYP9bJtpqON8Kyy3RbqnqdtDBDUsPTQTNUCvZtKiFI",
-  price: "0",
   maxItems: "1000",
 };
 
@@ -54,6 +53,15 @@ test("bundler profile installs the p4 bootstrap hook and pins its devices", () =
   assert.equal(config["bundler-beneficiary"], base.beneficiary);
   assert.ok(config["trusted-devices"]["lapee-p4-bootstrap@1.0"]);
   assert.deepEqual(config.on.request, [{ device: "manifest@1.0" }]);
+});
+
+test("bundler route rank stays separate from the live AO upload quote", () => {
+  // A stale caller-supplied price must not turn a relative router signal or
+  // the legacy simple-pay fallback into an apparent fixed upload charge.
+  const config = buildConfig({ ...base, profile: "bundler", price: "1000000000" });
+  assert.equal(config["simple-pay-price"], 0);
+  assert.deepEqual(config["router-opts"].offered.map((route) => route.price), [0, 0, 0]);
+  assert.equal(config["arweave-byte-price"], "dynamic");
 });
 
 test("bundler without a beneficiary is refused rather than silently misconfigured", () => {

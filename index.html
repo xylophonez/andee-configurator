@@ -12,16 +12,16 @@
         document.documentElement.dataset.theme = resolved;
       })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260810-tunnel-status" />
+    <link rel="stylesheet" href="styles.css?v=20260929-standalone-market" />
   </head>
   <body>
     <div class="app-shell">
       <main>
         <section class="node-hero" aria-labelledby="node-title">
-          <andee-phone class="node-phone" status="disconnected" aria-label="Rotating wireframe AndEE phone"></andee-phone>
+          <andee-phone class="node-phone" status="preview" aria-label="Rotating wireframe AndEE phone"></andee-phone>
           <div class="node-hero__copy" aria-live="polite">
-            <h2 id="node-title">No AndEE connected</h2>
-            <p id="node-detail">Open this page inside AndEE to connect to a node.</p>
+            <h2 id="node-title">Configure your AndEE</h2>
+            <p id="node-detail">Download next.json, then use LOAD CONFIG in AndEE to import it.</p>
           </div>
         </section>
 
@@ -163,14 +163,7 @@
               <input id="beneficiary" type="text" autocomplete="off" spellcheck="false" placeholder="43-character Arweave address" />
             </label>
             <p class="error" id="beneficiary-error" hidden>A beneficiary address is required.</p>
-            <div class="field-row field-row--compact">
-              <span>Price</span>
-              <span class="number-stepper">
-                <button type="button" data-step-target="price" data-step-direction="down" aria-label="Decrease price">−</button>
-                <input id="price" type="number" min="0" inputmode="numeric" aria-label="Price" />
-                <button type="button" data-step-target="price" data-step-direction="up" aria-label="Increase price">+</button>
-              </span>
-            </div>
+            <p class="inline-note">Bundle uploads receive a live quote based on Arweave bytes, in AO base units. This screen does not set a fixed upload price or payout amount.</p>
             <div class="field-row field-row--compact">
               <span>Max items</span>
               <span class="number-stepper">
@@ -220,19 +213,17 @@
         </section>
 
         <div class="action-area">
-          <button id="apply" type="button" class="button button--primary" hidden>Apply to this phone</button>
           <button id="download" type="button" class="button button--primary">
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <path d="M10 3.5v8m0 0 3-3m-3 3-3-3M4.5 14v1.5h11V14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             <span>Download next.json</span>
           </button>
-          <p class="inline-note" id="apply-note" hidden></p>
           <p class="privacy-note">Generated on this device. Nothing is uploaded.</p>
         </div>
       </main>
     </div>
 
-    <script type="module" src="src/app.js?v=20260810-tunnel-status"></script>
+    <script type="module" src="src/app.js?v=20260929-standalone-market"></script>
   </body>
 </html>

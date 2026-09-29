@@ -2,15 +2,15 @@
 
 Operator-config builder for a **PermawebOS Node** running on Android.
 
-Pick a profile, fill in a few fields, download `next.json`, and import it from
-the node's config picker. The page runs entirely in the browser and uploads
-nothing.
+Pick capabilities, fill in their fields, download `next.json`, and import it
+with AndEE's LOAD CONFIG picker. The Configurator opens in a separate browser;
+it does not connect directly to the phone or upload the generated config.
 
 ## Run
 
 ```sh
 npm run serve   # http://127.0.0.1:5482/
-npm test        # 12 tests
+npm test        # node:test suite
 npm run check   # syntax check
 ```
 
@@ -63,6 +63,11 @@ address and the URL stops resolving.
 - **There is no built-in bundler device.** `~bundler@1.0` is assembled at boot:
   the `lapee-p4-bootstrap@1.0` start hook installs it, and `trusted-devices` /
   `name-resolvers` pin the payment, pricing, settlement and GC devices it needs.
+- **The Bundler card has no fixed price control.** P4 routes bundle uploads to
+  `arweave-byte-pricing@1.0`, which quotes Arweave bytes in AO base units at
+  request time. `simple-pay-price` and `router-opts/offered[].price` remain 0,
+  matching the reference paid profile. The latter is a relative router ranking
+  signal; it is not the paid upload quote or an operator payout setting.
 - **`render-index-page` does nothing.** It appears in shipped configs and looks
   like the switch for the hyperbuddy UI, but the key does not exist in the
   pinned HyperBEAM. `default-index` is the one actually read, which is what the
@@ -73,7 +78,7 @@ address and the URL stops resolving.
 - **The tunnel implementation is repinned periodically.** If registration fails
   before any device is contacted, a stale `tunnel@1.0` pin is the usual cause;
   check what the router currently trusts at
-  `<router>/~meta@1.0/info/trusted-devices/tunnel@1.0`.
+  `<router>/~meta@1.0/info/trusted-devices/tunnel%401.0`.
 - **The tunnel defaults to eight workers.** Bazar opens four gateway reads at
   once during startup, and the router rejects work beyond the registered
   worker pool instead of queueing it. Eight leaves room for that burst and
@@ -97,35 +102,19 @@ that one opens a raw node image, finds the FAT EFI partition and patches
 patch — the node imports a JSON — so the FAT/GPT reader and the wifi editor are
 gone.
 
-## Deploying, and the mutable reference
+## Deploying and the Android pin
 
-The app is deployed as an Arweave path manifest (`node deploy.mjs`), which
-mints a **new, immutable** manifest id every time. Anything that hardcodes a
-manifest id — notably the Android app's `ConfiguratorActivity`, whose
-`CONFIGURATOR_URL` is a compile-time constant — is therefore frozen to the
-version it shipped against, and needs an app release to see any UI change.
+`deploy.mjs` signs and uploads each static asset through a paid bundler, then
+uploads an Arweave path manifest. Every publication gets a new immutable
+manifest ID. The current Android `OrnamentActivity` opens the fixed URL
+`https://arweave.net/BD8gs73YRzTwOJ0YpDTE3DOxjbQQ8vhhgIVJc11T_mA/`, so
+local source changes do not alter the page already installed on a phone.
 
-So the app should be pointed at a **`~reference@1.0` mutable reference**
-instead. The reference id never changes; a `set` repoints it at a new manifest.
-
-**Configurator reference:** `BD8gs73YRzTwOJ0YpDTE3DOxjbQQ8vhhgIVJc11T_mA`
-→ `https://arweave.net/BD8gs73YRzTwOJ0YpDTE3DOxjbQQ8vhhgIVJc11T_mA/`
-(sub-paths resolve through it, so `src/app.js` and friends load normally).
-
-To ship a UI change:
-
-```sh
-node deploy.mjs                      # -> new manifest id
-cd ~/Dev/reference-owner
-node set-reference.mjs BD8gs73YRzTwOJ0YpDTE3DOxjbQQ8vhhgIVJc11T_mA <NEW_MANIFEST_ID>
-```
-
-Then **read it back** before believing it — propagation took ~90s when the
-reference was created:
-
-```sh
-curl -sL https://arweave.net/BD8gs73YRzTwOJ0YpDTE3DOxjbQQ8vhhgIVJc11T_mA/ | grep tunnel-picker
-```
+After reviewing and authorizing a new publication, publish the static assets,
+verify the new manifest and all module paths, update Android's
+`CONFIGURATOR_URL` to that manifest ID, rebuild the app, and test its separate
+browser and LOAD CONFIG flow. The local static review bundle contains no signed
+data-item IDs; those only exist after publication.
 
 Two traps worth knowing:
 
