@@ -65,7 +65,7 @@ export const TUNNEL_TRUSTED = { "tunnel@1.0": TUNNEL_IMPL };
 // lapee-p4-bootstrap start hook installs it, and these pins let it load.
 export const BUNDLER_NAME_RESOLVERS = [
   {
-    "ao-payment@1.0": "7eAMYQ9PG8esiP-XIz1UoP78aI1htNgdtHqSbNm94X4",
+    "ao-payment@1.0": "B0tLXS0jzRtLkn-3DGhSmuGZwrEQH0-Jxg5-UFUVh1s",
     "arweave-byte-pricing@1.0": "LMByssb9jjrc2DUQOucor4t0Zni0JOViiY6PZmGgHRU",
     "bundler-settlement@1.0": "Nu-wM8Pdq4r6MTOKYFXnM6Jn0vAeGI732l-TsOcmazY",
     "lapee-bundler-gc@1.0": "obuc_4WtzF1vHZT17s3iV07O-qzgQuSAfmjECpehcYQ",
@@ -79,8 +79,8 @@ export const BUNDLER_NAME_RESOLVERS = [
 ];
 
 export const BUNDLER_TRUSTED = {
-  "ao-payment@1.0": "EJwu47Q0MK2DMjohTRX4kNYc7QLiXZmKq3s8QLTgTX4",
-  "7eAMYQ9PG8esiP-XIz1UoP78aI1htNgdtHqSbNm94X4": "EJwu47Q0MK2DMjohTRX4kNYc7QLiXZmKq3s8QLTgTX4",
+  "ao-payment@1.0": "1ibPlucxI642_p1V1ICOpEq2horsV6_bs153M5AZ-Hk",
+  "B0tLXS0jzRtLkn-3DGhSmuGZwrEQH0-Jxg5-UFUVh1s": "1ibPlucxI642_p1V1ICOpEq2horsV6_bs153M5AZ-Hk",
   "arweave-byte-pricing@1.0": "XE8fg4poXwCYdMJm4uDFhlC3RQ7FuOKDtb8gSxbakm0",
   "LMByssb9jjrc2DUQOucor4t0Zni0JOViiY6PZmGgHRU": "XE8fg4poXwCYdMJm4uDFhlC3RQ7FuOKDtb8gSxbakm0",
   "bundler-settlement@1.0": "oeJGtUCutNdfszNuwGs0r7VW_inRhuFl_nDYraIRWjk",
