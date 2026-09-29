@@ -12,9 +12,17 @@ it does not connect directly to the phone or upload the generated config.
 npm run serve   # http://127.0.0.1:5482/
 npm test        # node:test suite
 npm run check   # syntax check
+npm run pack:provider  # builds the tunnel-provider download from docs + checker
 ```
 
-No build step. It is plain ES modules and one stylesheet.
+The page uses plain ES modules and one stylesheet; there is no JavaScript build step.
+
+The Public access card links to `downloads/tunnel-provider-pack.zip`. Run
+`npm run pack:provider` before serving the source locally; `deploy.mjs` builds
+it automatically before uploading. The ZIP contains a short start guide, the
+transport-only LapEE operator template, an offline config checker, and the
+detailed tunnel/location notes. The checker validates file shape and required
+hooks; it does not verify measurement, a live route or payment terms.
 
 ## What it produces
 
@@ -110,11 +118,14 @@ manifest ID. The current Android `OrnamentActivity` opens the fixed URL
 `https://arweave.net/BD8gs73YRzTwOJ0YpDTE3DOxjbQQ8vhhgIVJc11T_mA/`, so
 local source changes do not alter the page already installed on a phone.
 
-After reviewing and authorizing a new publication, publish the static assets,
-verify the new manifest and all module paths, update Android's
-`CONFIGURATOR_URL` to that manifest ID, rebuild the app, and test its separate
-browser and LOAD CONFIG flow. The local static review bundle contains no signed
-data-item IDs; those only exist after publication.
+After reviewing and authorizing a new publication, publish the static assets
+and verify the manifest, every module path and the provider-pack download. The
+installed Android app opens the shared Configurator reference above, whose
+current target is changed by a separate signed reference update. That update
+affects everyone opening the shared URL. Verify the reference target and repeat
+the separate-browser and LOAD CONFIG flow after changing it. A new APK is
+needed only if the URL embedded in Android changes. The local static review
+bundle contains no signed data-item IDs; those exist only after publication.
 
 Two traps worth knowing:
 
