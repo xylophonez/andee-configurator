@@ -12,14 +12,14 @@ For each signer, a higher signed nonce supersedes an earlier record. Publication
 
 ## Crawl and probe
 
-1. Page both tag schemas using GraphQL cursors. Bound pages, timeout, and concurrent probes. Keep one latest candidate per signer. If two signers claim the same URL, keep both claims until the endpoint's identity is checked.
+1. Page both tag schemas using GraphQL cursors. Bound pages, timeout, and concurrent probes. Keep one latest candidate per signer. If two signers claim the same URL, keep both claims until the endpoint's identity is checked. The browser finder stops after five pages and probes at most 60 recent candidates; it explicitly says when that view is incomplete. A network-wide market needs the cached crawler discussed in the call, with a complete crawl and freshness evidence.
 2. Reject localhost, private/link-local/CGNAT addresses, credentials, unsafe schemes, and redirects. HTTPS is required for a public browser-facing market. DNS rebinding and CORS still require a trusted network-side crawler or tighter browser policy.
 3. Probe `~tunnel@1.0/status`, `~meta@1.0/info/address`, the scalar trusted-device path `/~meta@1.0/info/trusted-devices/tunnel%401.0`, and current metering data. A response proves only what that endpoint reports. Signer/address equality is an identity consistency check, not measurement verification.
 4. For **measured-provider eligibility**, obtain a fresh `~measurement@1.0` challenge and have a verifier independent of the discovered node validate its signature, nonce, certificate/evidence chain, measured body, backend and platform policy. Bind the accepted node identity to the signed location record and reached endpoint. Inspect the verified body for the trusted device pin and policy-relevant capabilities, then use a live service probe to confirm the device works. No browser-only shortcut may call a self-reported `measurement-device` a verdict.
 5. Read an enforceable current price/terms interface and payment destination once Sam's tunnel charging contract defines it. `metering-rates` are internal units, not an AO or USD quote. Treat absent/zero rates as unknown terms, not a promise of free service.
 6. Cache candidate discovery with explicit crawl time and expiry. Refresh identity, measurement, capability, pin, health and quote before selection. Expired records, unreachable endpoints and rejected measurements need distinct states; a cached listing must not silently become eligible.
 
-The first public release can use a curated starter tunnel while these market-admission checks are completed. The Configurator finder currently provides **candidate discovery**, not measured market admission. It displays that limit in the picker.
+The first public release can use a curated starter tunnel while these market-admission checks are completed. The Configurator finder currently provides **candidate discovery**, not measured market admission. It displays the verification limit in the picker and the crawl limit below the search control.
 
 ## Acceptance cases
 

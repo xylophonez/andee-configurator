@@ -113,14 +113,15 @@ test("location crawl follows cursors and stops at the page bound", async () => {
   });
 });
 
-test("an incomplete crawl reports an error instead of an incomplete market", async () => {
+test("an incomplete crawl reports truncation instead of implying a full market", async () => {
   await withFetch({ "/graphql": { data: {
     legacy: { pageInfo: { hasNextPage: true }, edges: [{ cursor: "more", node: {
       id: "one", owner: { address: "one" }, block: { timestamp: 1 }, tags: []
     } }] },
     current: { pageInfo: { hasNextPage: false }, edges: [] },
   } } }, async () => {
-    await assert.rejects(locationRecords({ maxPages: 1 }), /page limit/);
+    const records = await locationRecords({ maxPages: 1 });
+    assert.equal(records.truncated, true);
   });
 });
 
@@ -355,6 +356,22 @@ test("a competing URL claim cannot displace the real node's listing", async () =
     assert.equal(result.tunnels[0].claimedBy, "REAL");
     assert.equal(result.tunnels[0].identityMatch, true);
     assert.equal(result.tunnels[0].measurementVerified, false);
+  });
+});
+
+test("a bounded probe reports that the provider list is incomplete", async () => {
+  await withFetch({
+    "/graphql": graphqlReply([
+      { url: "https://one.example", address: "ONE", published: 2000 },
+      { url: "https://two.example", address: "TWO", published: 1000 },
+    ]),
+    "/~tunnel@1.0/status": { "open-registrations": 1 },
+    "one.example/~meta@1.0/info/address": "ONE",
+  }, async () => {
+    const result = await discoverTunnels({ maxProbes: 1 });
+    assert.equal(result.candidates, 2);
+    assert.equal(result.probed, 1);
+    assert.equal(result.incomplete, true);
   });
 });
 

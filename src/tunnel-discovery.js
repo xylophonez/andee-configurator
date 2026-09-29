@@ -153,9 +153,6 @@ export async function locationRecords({
       done[schema] = !result.pageInfo.hasNextPage;
       if (!done[schema]) cursors[schema] = next;
     }
-    if (page === maxPages - 1 && Object.values(done).some((value) => !value)) {
-      throw new Error("Location registry exceeded crawl page limit");
-    }
   }
   const insecurePage =
     typeof location !== "undefined" && location.protocol === "https:";
@@ -199,7 +196,11 @@ export async function locationRecords({
         (record.nonce === prior.nonce && record.published > prior.published)
       : record.published > prior.published)) best.set(key, record);
   }
-  return [...best.values()].sort((a, b) => b.published - a.published);
+  const records = [...best.values()].sort((a, b) => b.published - a.published);
+  Object.defineProperty(records, "truncated", {
+    value: Object.values(done).some((value) => !value),
+  });
+  return records;
 }
 
 /** Fetch a single scalar as text. Used where a whole map cannot be requested
@@ -275,18 +276,24 @@ export async function discoverTunnels({
   gateway = GATEWAY,
   limit = 100,
   maxPages = 5,
+  maxProbes = 60,
   concurrency = 6,
   timeoutMs = 8000,
   signal,
 } = {}) {
+  if (!Number.isInteger(maxProbes) || maxProbes < 1 || maxProbes > 500 ||
+      !Number.isInteger(concurrency) || concurrency < 1 || concurrency > 20) {
+    throw new RangeError("Invalid tunnel probe bounds");
+  }
   const candidates = await locationRecords({ gateway, limit, maxPages, signal });
+  const probeCandidates = candidates.slice(0, maxProbes);
   const found = [];
   let cursor = 0;
 
   async function worker() {
-    while (cursor < candidates.length) {
+    while (cursor < probeCandidates.length) {
       if (signal?.aborted) return;
-      const candidate = candidates[cursor++];
+      const candidate = probeCandidates[cursor++];
       const probe = await probeTunnel(candidate.url, { timeoutMs, signal });
       if (!probe) continue;
       // Anyone can publish a record claiming any URL -- the record is signed by
@@ -309,7 +316,7 @@ export async function discoverTunnels({
   }
 
   await Promise.all(
-    Array.from({ length: Math.min(concurrency, candidates.length) }, worker),
+    Array.from({ length: Math.min(concurrency, probeCandidates.length) }, worker),
   );
 
   // Matching a location signer is useful but does not attest the machine.
@@ -322,6 +329,8 @@ export async function discoverTunnels({
   const unique = [...byURL.values()];
   return {
     candidates: candidates.length,
+    probed: probeCandidates.length,
+    incomplete: Boolean(candidates.truncated) || probeCandidates.length < candidates.length,
     tunnels: unique,
     identityMismatches: unique.filter((tunnel) => !tunnel.identityMatch).length,
   };

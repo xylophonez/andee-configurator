@@ -591,7 +591,7 @@ async function runTunnelDiscovery({ quiet = false } = {}) {
     note.textContent = "Reading location records…";
   }
   try {
-    const { candidates, tunnels } = await discoverTunnels({ timeoutMs: 8000 });
+    const { candidates, tunnels, incomplete } = await discoverTunnels({ timeoutMs: 8000 });
     // A built-in router that also turns up in discovery is enriched, not
     // duplicated: its live price and pin land in `liveTunnels` and it keeps its
     // own entry in the list.
@@ -604,7 +604,10 @@ async function runTunnelDiscovery({ quiet = false } = {}) {
     renderTunnelOptions(current);
     // On the background pass say nothing unless something was found -- an
     // empty registry is the normal state today and is not news on page load.
-    if (!tunnels.length && !quiet) {
+    if (incomplete) {
+      note.hidden = false;
+      note.textContent = `Showing recent candidates from ${candidates} location records. Search is incomplete.`;
+    } else if (!tunnels.length && !quiet) {
       note.hidden = false;
       note.textContent = "No tunnels found.";
     } else {
