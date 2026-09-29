@@ -1,33 +1,24 @@
-// Find tunnel routers on the network instead of hard-coding them.
-//
-// Two steps, because the two facts live in different places. Which nodes exist
-// is on Arweave and answerable by GraphQL; what a node charges is in its
-// operator's config on its own disk and is never published, so it has to be
-// asked for over HTTP. There is no query that answers both.
-//
-// The HTTP step is a probe, not a lookup. A location record says "a node is
-// here"; it does not say the node is a tunnel, that it is alive, or what it
-// costs. Every such claim is verified against the node that would have to
-// honour it, seconds before anyone commits to using it. That also disposes of
-// the obvious objection to an advertised price -- nothing is advertised.
-//
-// Reading the pin live is the real prize. `TUNNELS` in presets.js carries a
-// hard-coded `impl` per router precisely because routers repin independently
-// and a stale value fails before a device is ever contacted. A discovered
-// router cannot be stale: its pin is read from the router itself.
+// Location records provide candidate endpoints. Live probes report what those
+// endpoints say now. Neither is an independent measurement verdict or an
+// enforceable price quote; the picker must keep those limits visible.
 
 const GATEWAY = "https://arweave.net";
 
 // Legacy scheduler records use title-case tags; current location@1.0 records
 // use normalized lower-case tags. Read both while nodes transition.
-const LOCATION_QUERY = `{
-  legacy: transactions(tags: [{name: "Type", values: ["Location", "Scheduler-Location"]}], first: %LIMIT%) {
-    edges { node { id owner { address } block { timestamp } tags { name value } } }
-  }
-  current: transactions(tags: [{name: "type", values: ["location"]}], first: %LIMIT%) {
-    edges { node { id owner { address } block { timestamp } tags { name value } } }
-  }
-}`;
+const LOCATION_TAGS = {
+  legacy: '[{name: "Type", values: ["Location", "Scheduler-Location"]}]',
+  current: '[{name: "type", values: ["location"]}]',
+};
+
+function locationQuery(active, cursors, limit) {
+  return `{ ${active.map((schema) => `${schema}: transactions(
+    tags: ${LOCATION_TAGS[schema]}, first: ${limit}
+    ${cursors[schema] ? `, after: ${JSON.stringify(cursors[schema])}` : ""}
+  ) { pageInfo { hasNextPage } edges { cursor node {
+    id owner { address } block { timestamp } tags { name value }
+  } } }`).join("\n")} }`;
+}
 
 // Hosts that cannot mean anything to someone else's browser. Records carrying
 // them are already in the registry -- `http://127.0.0.1:9000`, `http://ao-su:9000`
@@ -35,15 +26,20 @@ const LOCATION_QUERY = `{
 // which default to localhost. They are published permanently and in good faith;
 // they are still noise.
 function unroutable(url) {
-  let host;
+  let parsed;
   try {
-    host = new URL(url).hostname.toLowerCase();
+    parsed = new URL(url);
   } catch {
     return true;
   }
+  if (!["http:", "https:"].includes(parsed.protocol)) return true;
+  if (parsed.username || parsed.password) return true;
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (host === "localhost" || host.endsWith(".localhost")) return true;
   if (host.endsWith(".local") || host.endsWith(".internal")) return true;
-  if (host === "::1" || host === "[::1]") return true;
+  // Public providers use DNS names. Exclude IP literals in IPv6 form until a
+  // parser can distinguish every mapped, private and link-local variant.
+  if (host.includes(":")) return true;
   // A bare hostname with no dot is only resolvable inside whatever network
   // published it -- container names like `ao-su` reach nobody else.
   if (!host.includes(".") && !/^\d+\.\d+\.\d+\.\d+$/.test(host)) return true;
@@ -54,6 +50,7 @@ function unroutable(url) {
     if (a === 192 && b === 168) return true;
     if (a === 172 && b >= 16 && b <= 31) return true;
     if (a === 169 && b === 254) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true;
     if (a >= 224) return true;
   }
   return false;
@@ -80,6 +77,7 @@ async function getJSON(url, timeoutMs, signal) {
   try {
     const res = await fetch(url, {
       signal: abort.signal,
+      redirect: "error",
       headers: { accept: "application/json" },
     });
     if (!res.ok) return null;
@@ -94,7 +92,7 @@ async function getJSON(url, timeoutMs, signal) {
 
 /** Candidate node URLs from published location records, newest first.
  *
- *  Records are deduplicated by URL and skipped when the page is served over
+ *  Records are superseded per signer and skipped when the page is served over
  *  HTTPS and the record points at HTTP: the browser would block the probe as
  *  mixed content, so offering the node would only produce a router that fails
  *  for reasons the user cannot see. Plenty of published records are `http://`
@@ -102,30 +100,63 @@ async function getJSON(url, timeoutMs, signal) {
 export async function locationRecords({
   gateway = GATEWAY,
   limit = 100,
+  maxPages = 5,
   timeoutMs = 15000,
   signal,
 } = {}) {
-  const body = JSON.stringify({ query: LOCATION_QUERY.replaceAll("%LIMIT%", String(limit)) });
-  const abort = new AbortController();
-  const timer = setTimeout(() => abort.abort(), timeoutMs);
-  signal?.addEventListener("abort", () => abort.abort(), { once: true });
-  let payload;
-  try {
-    const res = await fetch(`${gateway}/graphql`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body,
-      signal: abort.signal,
-    });
-    payload = res.ok ? await res.json() : null;
-  } catch {
-    payload = null;
-  } finally {
-    clearTimeout(timer);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100 ||
+      !Number.isInteger(maxPages) || maxPages < 1 || maxPages > 20) {
+    throw new RangeError("Invalid location crawl bounds");
   }
-
-  const edges = Object.values(payload?.data ?? {})
-    .flatMap((transactions) => transactions?.edges ?? []);
+  const cursors = { legacy: null, current: null };
+  const done = { legacy: false, current: false };
+  const edges = [];
+  for (let page = 0; page < maxPages; page++) {
+    const active = Object.keys(done).filter((schema) => !done[schema]);
+    if (signal?.aborted) throw new DOMException("Discovery cancelled", "AbortError");
+    if (!active.length) break;
+    const body = JSON.stringify({ query: locationQuery(active, cursors, limit) });
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), timeoutMs);
+    const onOuter = () => abort.abort();
+    signal?.addEventListener("abort", onOuter, { once: true });
+    let payload;
+    try {
+      const res = await fetch(`${gateway}/graphql`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body,
+        signal: abort.signal,
+        redirect: "error",
+      });
+      payload = res.ok ? await res.json() : null;
+    } catch {
+      payload = null;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onOuter);
+    }
+    if (!payload?.data || payload.errors?.length) {
+      throw new Error("Location registry query failed");
+    }
+    for (const schema of active) {
+      const result = payload.data[schema];
+      if (!result?.pageInfo || !Array.isArray(result.edges)) {
+        throw new Error("Location registry page is incomplete");
+      }
+      const batch = result.edges;
+      edges.push(...batch);
+      const next = batch.at(-1)?.cursor;
+      if (result.pageInfo.hasNextPage && (!next || next === cursors[schema])) {
+        throw new Error("Location registry returned no forward cursor");
+      }
+      done[schema] = !result.pageInfo.hasNextPage;
+      if (!done[schema]) cursors[schema] = next;
+    }
+    if (page === maxPages - 1 && Object.values(done).some((value) => !value)) {
+      throw new Error("Location registry exceeded crawl page limit");
+    }
+  }
   const insecurePage =
     typeof location !== "undefined" && location.protocol === "https:";
   const now = Date.now();
@@ -144,9 +175,13 @@ export async function locationRecords({
 
     const ttl = Number(tags["Time-To-Live"] ?? tags["time-to-live"] ?? 0) || 0;
     const published = Number(edge.node.block?.timestamp ?? 0) * 1000;
+    const rawNonce = tags.Nonce ?? tags.nonce;
+    const parsedNonce = rawNonce === undefined ? null : Number(rawNonce);
+    const nonce = Number.isSafeInteger(parsedNonce) && parsedNonce >= 0 ? parsedNonce : null;
     const record = {
       url,
       address: edge.node.owner?.address ?? "",
+      nonce,
       ttl,
       published,
       // Expiry is recorded, not enforced. Almost every record in the registry
@@ -155,10 +190,14 @@ export async function locationRecords({
       expired: Boolean(published && ttl && published + ttl < now),
       record: edge.node.id,
     };
-    // One record per URL: the most recently published wins, so a node that
-    // republishes supersedes its own older claim.
-    const prior = best.get(url);
-    if (!prior || record.published > prior.published) best.set(url, record);
+    // Supersession belongs to a signer. A stranger can publish the same URL;
+    // keep that competing claim until the live identity check has run.
+    const key = record.address || `unsigned:${record.record}`;
+    const prior = best.get(key);
+    if (!prior || (record.nonce !== null && prior.nonce !== null
+      ? record.nonce > prior.nonce ||
+        (record.nonce === prior.nonce && record.published > prior.published)
+      : record.published > prior.published)) best.set(key, record);
   }
   return [...best.values()].sort((a, b) => b.published - a.published);
 }
@@ -173,6 +212,7 @@ async function getText(url, timeoutMs, signal) {
   try {
     const res = await fetch(url, {
       signal: abort.signal,
+      redirect: "error",
       headers: { accept: "text/plain" },
     });
     if (!res.ok) return null;
@@ -204,7 +244,7 @@ export async function probeTunnel(url, { timeoutMs = 8000, signal } = {}) {
     ),
     getJSON(`${base}/~meta@1.0/info/metering-rates`, timeoutMs, signal),
     // Who the node says it is. Compared against whoever signed the location
-    // record; see `verified` in discoverTunnels.
+    // record; see `identityMatch` in discoverTunnels.
     getText(`${base}/~meta@1.0/info/address`, timeoutMs, signal),
   ]);
 
@@ -220,14 +260,9 @@ export async function probeTunnel(url, { timeoutMs = 8000, signal } = {}) {
     impl,
     address,
     registrations,
-    // Free until proven otherwise: an absent rate folds to zero in
-    // metering@1.0, so no priced resources genuinely means no charge.
+    // An unreadable rate map says nothing about payment terms.
     rates: Object.fromEntries(priced),
-    free: priced.length === 0,
-    // What the tunnel serves to the public arrives at the broker as the
-    // tunnelled node's response POST, so egress is meta-bytes-in. Named here
-    // because the inversion is the thing everyone gets wrong.
-    egressRate: Object.fromEntries(priced)["meta-bytes-in"] ?? 0,
+    free: priced.length ? false : null,
   };
 }
 
@@ -239,11 +274,12 @@ export async function probeTunnel(url, { timeoutMs = 8000, signal } = {}) {
 export async function discoverTunnels({
   gateway = GATEWAY,
   limit = 100,
+  maxPages = 5,
   concurrency = 6,
   timeoutMs = 8000,
   signal,
 } = {}) {
-  const candidates = await locationRecords({ gateway, limit, signal });
+  const candidates = await locationRecords({ gateway, limit, maxPages, signal });
   const found = [];
   let cursor = 0;
 
@@ -258,11 +294,12 @@ export async function discoverTunnels({
       // production image will happily assert it is the production tunnel. So
       // ask the node who it is and require it to match the signer. A mismatch
       // is not a broken router, it is somebody else's claim about this one.
-      const verified =
+      const identityMatch =
         Boolean(probe.address) && probe.address === candidate.address;
       found.push({
         ...probe,
-        verified,
+        identityMatch,
+        measurementVerified: false,
         claimedBy: candidate.address,
         expired: candidate.expired,
         published: candidate.published,
@@ -275,35 +312,25 @@ export async function discoverTunnels({
     Array.from({ length: Math.min(concurrency, candidates.length) }, worker),
   );
 
-  // Verified first, then busiest. A router already carrying registrations has
-  // demonstrated it works, which is worth more to someone choosing one than a
-  // cheaper price on a node nothing has ever used.
-  found.sort(
-    (a, b) => Number(b.verified) - Number(a.verified) || b.registrations - a.registrations,
-  );
+  // Matching a location signer is useful but does not attest the machine.
+  found.sort((a, b) => Number(b.identityMatch) - Number(a.identityMatch) ||
+    b.published - a.published || b.registrations - a.registrations);
+  const byURL = new Map();
+  for (const tunnel of found) {
+    if (!byURL.has(tunnel.peer)) byURL.set(tunnel.peer, tunnel);
+  }
+  const unique = [...byURL.values()];
   return {
     candidates: candidates.length,
-    tunnels: found,
-    unverified: found.filter((tunnel) => !tunnel.verified).length,
+    tunnels: unique,
+    identityMismatches: unique.filter((tunnel) => !tunnel.identityMatch).length,
   };
 }
 
-/** Present a rate as money. One base unit per byte is ~$2/TB: an AO token is
- *  1e12 base units and trades around $2, so the two cancel to "units per byte
- *  times two dollars per terabyte". Approximate by construction -- the token
- *  price moves, and metered sizes are ETF-encoded rather than wire octets, so
- *  this is for comparing routers, not for predicting a bill. */
-export function describePrice(tunnel, { tokenUSD = 2 } = {}) {
-  if (!tunnel || tunnel.free) return "free";
-  const rate = tunnel.egressRate;
-  if (!rate) {
-    const other = Object.keys(tunnel.rates).join(", ");
-    return other ? `priced on ${other}` : "free";
-  }
-  const perTB = rate * tokenUSD;
-  return perTB < 0.01
-    ? `~$${perTB.toFixed(4)}/TB`
-    : `~$${perTB.toFixed(2)}/TB`;
+/** Internal metering rates are not a price quote or settlement promise. */
+export function describePrice(tunnel) {
+  if (!tunnel || tunnel.free === null) return "price unavailable";
+  return `metered on ${Object.keys(tunnel.rates).join(", ")}; terms unverified`;
 }
 
 /** Shape a discovered router like a `presets.js` TUNNELS entry so the picker
@@ -314,9 +341,12 @@ export function asTunnelEntry(tunnel) {
   // Say what is wrong with it, not just that something is. A user choosing a
   // router can weigh "nobody vouches for this address" themselves; "suspicious"
   // tells them nothing and invites ignoring it.
-  if (tunnel.verified === false) warnings.push("unverified: record signed by another address");
+  if (tunnel.identityMatch === false) warnings.push("record signed by another address");
   if (tunnel.expired) warnings.push("record expired");
   if (!tunnel.impl) warnings.push("implementation pin unavailable");
+  warnings.push("measurement not verified");
+  if (tunnel.free === null) warnings.push("price unavailable");
+  else if (!tunnel.free) warnings.push("payment terms unverified");
   return {
     id: `discovered:${host}`,
     name: host,
@@ -325,7 +355,7 @@ export function asTunnelEntry(tunnel) {
     registrations: tunnel.registrations,
     free: tunnel.free,
     discovered: true,
-    verified: tunnel.verified !== false,
+    verified: false,
     note: warnings.join(" · "),
   };
 }

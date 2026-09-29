@@ -498,7 +498,7 @@ function renderTunnelOptions(selectedId = el("tunnel-select").value || TUNNELS[0
       if (id === "custom") return "Enter another tunnel manually.";
       const tunnel = findTunnel(id);
       if (!Number.isFinite(tunnel?.registrations)) return tunnel?.note ?? "";
-      const access = tunnel.free ? "Free" : "Paid";
+      const access = tunnel.free === null ? "Price unknown" : "Metered";
       const connections = `${tunnel.registrations} connection${tunnel.registrations === 1 ? "" : "s"}`;
       return [connections, access, tunnel.note]
         .filter(Boolean).join(" · ");

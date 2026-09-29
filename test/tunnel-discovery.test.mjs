@@ -37,20 +37,21 @@ function graphqlReply(records) {
       return {
         node: {
           id: record.id ?? "tx",
-          owner: { address: record.address ?? "addr" },
+          owner: { address: record.address ?? `addr:${record.url.replace(/\/+$/, "")}` },
           block: { timestamp: record.published ?? Math.floor(Date.now() / 1000) },
           tags: [
             { name: current ? "type" : "Type", value: current ? "location" : "Scheduler-Location" },
             { name: current ? "url" : "Url", value: record.url },
             { name: current ? "time-to-live" : "Time-To-Live", value: String(record.ttl ?? 3600000) },
+            ...(record.nonce === undefined ? [] : [{ name: current ? "nonce" : "Nonce", value: String(record.nonce) }]),
           ],
         },
       };
     });
   return {
     data: {
-      legacy: { edges: edges("legacy") },
-      current: { edges: edges("current") },
+      legacy: { pageInfo: { hasNextPage: false }, edges: edges("legacy") },
+      current: { pageInfo: { hasNextPage: false }, edges: edges("current") },
     },
   };
 }
@@ -85,6 +86,48 @@ test("the location query applies its limit to both schemas", async () => {
       } },
     async () => assert.deepEqual(await locationRecords({ limit: 7 }), []),
   );
+});
+
+test("location crawl follows cursors and stops at the page bound", async () => {
+  let calls = 0;
+  const edge = (id, cursor) => ({ cursor, node: {
+    id, owner: { address: id }, block: { timestamp: Math.floor(Date.now() / 1000) },
+    tags: [{ name: "type", value: "location" }, { name: "url", value: `https://${id}.example` }],
+  } });
+  await withFetch({ "/graphql": (_url, init) => {
+    calls++;
+    const { query } = JSON.parse(init.body);
+    if (calls === 1) return { data: {
+      legacy: { pageInfo: { hasNextPage: false }, edges: [] },
+      current: { pageInfo: { hasNextPage: true }, edges: [edge("one", "next-page")] },
+    } };
+    assert.match(query, /after: "next-page"/);
+    assert.doesNotMatch(query, /legacy:/);
+    return { data: { current: {
+      pageInfo: { hasNextPage: false }, edges: [edge("two", "page-three")],
+    } } };
+  } }, async () => {
+    const records = await locationRecords({ limit: 1, maxPages: 2 });
+    assert.deepEqual(records.map((record) => record.address).sort(), ["one", "two"]);
+    assert.equal(calls, 2);
+  });
+});
+
+test("an incomplete crawl reports an error instead of an incomplete market", async () => {
+  await withFetch({ "/graphql": { data: {
+    legacy: { pageInfo: { hasNextPage: true }, edges: [{ cursor: "more", node: {
+      id: "one", owner: { address: "one" }, block: { timestamp: 1 }, tags: []
+    } }] },
+    current: { pageInfo: { hasNextPage: false }, edges: [] },
+  } } }, async () => {
+    await assert.rejects(locationRecords({ maxPages: 1 }), /page limit/);
+  });
+});
+
+test("a registry failure is not reported as an empty registry", async () => {
+  await withFetch({ "/graphql": "throw" }, async () => {
+    await assert.rejects(locationRecords({}), /registry query failed/);
+  });
 });
 
 test("current location records supersede legacy records for the same url", async () => {
@@ -125,7 +168,7 @@ test("a node that does not answer the tunnel status is not a router", async () =
   );
 });
 
-test("a router reports its live pin, price and registration count", async () => {
+test("a router reports its live pin, metering and registration count", async () => {
   await withFetch(
     {
       "/~tunnel@1.0/status": { "open-registrations": 16, status: 200 },
@@ -139,7 +182,6 @@ test("a router reports its live pin, price and registration count", async () => 
       assert.equal(probe.peer, "https://paid.example");
       assert.equal(probe.impl, "PINPINPIN");
       assert.equal(probe.registrations, 16);
-      assert.equal(probe.egressRate, 1);
       assert.equal(probe.free, false);
       // Zero-rated resources are not "prices" -- they must not appear.
       assert.deepEqual(probe.rates, { "meta-bytes-in": 1 });
@@ -147,7 +189,7 @@ test("a router reports its live pin, price and registration count", async () => 
   );
 });
 
-test("a router with every rate at zero reads as free", async () => {
+test("zero rates do not imply free service", async () => {
   await withFetch(
     {
       "/~tunnel@1.0/status": { "open-registrations": 3, status: 200 },
@@ -155,8 +197,8 @@ test("a router with every rate at zero reads as free", async () => {
     },
     async () => {
       const probe = await probeTunnel("https://free.example");
-      assert.equal(probe.free, true);
-      assert.equal(describePrice(probe), "free");
+      assert.equal(probe.free, null);
+      assert.equal(describePrice(probe), "price unavailable");
     },
   );
 });
@@ -178,14 +220,14 @@ test("an unreadable pin is reported as unknown, not guessed", async () => {
   );
 });
 
-test("price is quoted per terabyte from the rate per byte", () => {
-  assert.equal(describePrice({ egressRate: 1, rates: { "meta-bytes-in": 1 }, free: false }), "~$2.00/TB");
-  assert.equal(describePrice({ egressRate: 5, rates: { "meta-bytes-in": 5 }, free: false }), "~$10.00/TB");
+test("metering units are not converted into a made-up currency quote", () => {
+  assert.equal(describePrice({ rates: { "request-bytes": 1, "response-bytes": 1 }, free: false }),
+    "metered on request-bytes, response-bytes; terms unverified");
 });
 
 test("a router priced on something other than egress says so", () => {
-  const described = describePrice({ egressRate: 0, rates: { "meta-request-ms": 4 }, free: false });
-  assert.equal(described, "priced on meta-request-ms");
+  const described = describePrice({ rates: { "meta-request-ms": 4 }, free: false });
+  assert.equal(described, "metered on meta-request-ms; terms unverified");
 });
 
 test("a discovered router is shaped like a built-in one", () => {
@@ -200,14 +242,16 @@ test("a discovered router is shaped like a built-in one", () => {
   assert.equal(entry.discovered, true);
   assert.equal(entry.registrations, 1);
   assert.equal(entry.free, false);
-  assert.equal(entry.note, "");
+  assert.match(entry.note, /measurement not verified/);
+  assert.equal(entry.verified, false);
 });
 
 test("hosts nobody else can reach are discarded", async () => {
   const junk = [
     "http://localhost:8734", "http://127.0.0.1:9000", "http://10.1.2.3:8734",
     "http://192.168.1.185:8734", "http://172.20.0.5:8734", "http://169.254.1.1:8734",
-    "http://ao-su:9000", "https://box.local:8734",
+    "http://ao-su:9000", "https://box.local:8734", "https://100.64.1.2",
+    "https://user:pass@public.example", "http://[fd00::1]",
   ];
   await withFetch(
     { "/graphql": graphqlReply([...junk.map((url) => ({ url })), { url: "https://real.example" }]) },
@@ -232,6 +276,17 @@ test("a republished record supersedes the node's older one", async () => {
   );
 });
 
+test("a higher nonce wins even when GraphQL timestamps arrive out of order", async () => {
+  await withFetch({ "/graphql": graphqlReply([
+    { url: "https://new.example", address: "NODE", id: "new", nonce: 9, published: 1000 },
+    { url: "https://old.example", address: "NODE", id: "old", nonce: 8, published: 2000 },
+  ]) }, async () => {
+    const records = await locationRecords({});
+    assert.equal(records.length, 1);
+    assert.equal(records[0].url, "https://new.example");
+  });
+});
+
 test("a lapsed record is flagged, not dropped", async () => {
   // Almost every record in the live registry has lapsed while its URL still
   // serves, so expiry must not be a filter or discovery returns nothing.
@@ -245,7 +300,7 @@ test("a lapsed record is flagged, not dropped", async () => {
   );
 });
 
-test("a router whose node address matches the signer is verified", async () => {
+test("matching the signer proves no measurement verdict", async () => {
   await withFetch(
     {
       "/graphql": graphqlReply([{ url: "https://honest.example", address: "NODEADDR" }]),
@@ -254,10 +309,11 @@ test("a router whose node address matches the signer is verified", async () => {
       "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 1, status: 200 },
     },
     async () => {
-      const { tunnels, unverified } = await discoverTunnels({});
+      const { tunnels, identityMismatches } = await discoverTunnels({});
       assert.equal(tunnels.length, 1);
-      assert.equal(tunnels[0].verified, true);
-      assert.equal(unverified, 0);
+      assert.equal(tunnels[0].identityMatch, true);
+      assert.equal(tunnels[0].measurementVerified, false);
+      assert.equal(identityMismatches, 0);
     },
   );
 });
@@ -274,16 +330,35 @@ test("a record claiming someone else's node is marked unverified", async () => {
       "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 1, status: 200 },
     },
     async () => {
-      const { tunnels, unverified } = await discoverTunnels({});
-      assert.equal(tunnels[0].verified, false);
+      const { tunnels, identityMismatches } = await discoverTunnels({});
+      assert.equal(tunnels[0].identityMatch, false);
       assert.equal(tunnels[0].claimedBy, "IMPOSTOR");
-      assert.equal(unverified, 1);
+      assert.equal(identityMismatches, 1);
       assert.match(asTunnelEntry(tunnels[0]).note, /signed by another address/);
     },
   );
 });
 
-test("verified routers sort above unverified ones", async () => {
+test("a competing URL claim cannot displace the real node's listing", async () => {
+  await withFetch({
+    "/graphql": graphqlReply([
+      { url: "https://provider.example", address: "REAL", id: "real", published: 1000 },
+      { url: "https://provider.example", address: "IMPOSTOR", id: "fake", published: 2000 },
+    ]),
+    "/~tunnel@1.0/status": { "open-registrations": 2 },
+    "/~meta@1.0/info/address": "REAL",
+    "/~meta@1.0/info/metering-rates": { "request-bytes": 1 },
+  }, async () => {
+    const result = await discoverTunnels({});
+    assert.equal(result.candidates, 2);
+    assert.equal(result.tunnels.length, 1);
+    assert.equal(result.tunnels[0].claimedBy, "REAL");
+    assert.equal(result.tunnels[0].identityMatch, true);
+    assert.equal(result.tunnels[0].measurementVerified, false);
+  });
+});
+
+test("matching location identities sort above mismatches", async () => {
   await withFetch(
     {
       "/graphql": graphqlReply([
@@ -300,7 +375,7 @@ test("verified routers sort above unverified ones", async () => {
       const { tunnels } = await discoverTunnels({ concurrency: 1 });
       // Busiest would put the impostor first; verification must outrank it.
       assert.equal(tunnels[0].peer, "https://quiet-real.example");
-      assert.equal(tunnels[0].verified, true);
+      assert.equal(tunnels[0].identityMatch, true);
     },
   );
 });
