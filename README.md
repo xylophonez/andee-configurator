@@ -16,7 +16,7 @@ npm run check   # syntax check
 
 No build step. It is plain ES modules and one stylesheet.
 
-Tunnel provider setup is documented in the [PermawebOS tunnels guide](https://lapee.hyperbeam.online/#/run/docs/tunnels). Its operator template and offline checker live in the separate `arweave://tunnel-blueprint` PermaGit repository. The Configurator builds client configs; it does not package provider files.
+Tunnel provider setup is documented in the [PermawebOS tunnels guide](https://lapee.hyperbeam.online/#/run/docs/tunnels). The LapEE operator example is `sample-configs/lapee-tunnel-provider.json` in `arweave://lapee`. The Configurator builds client configs; it does not package provider files.
 
 ## What it produces
 
