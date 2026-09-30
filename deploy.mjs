@@ -8,8 +8,6 @@
 // item as the request message itself and the upload 404s through its own device.
 import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
-import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import * as arbundles from 'arbundles';
 
 const BUNDLER = 'https://bundler.mystical.computer/~bundler@1.0/tx';
@@ -29,13 +27,7 @@ const FILES = [
   ['src/theme.js', 'text/javascript'],
   ['src/andee-phone.js', 'text/javascript'],
   ['src/tunnel-discovery.js', 'text/javascript'],
-  ['downloads/tunnel-provider-pack.zip', 'application/zip'],
 ];
-
-// The archive is generated from the reviewed docs and checker on every deploy.
-execFileSync('python3', [fileURLToPath(new URL('./scripts/package-tunnel-provider.py', import.meta.url))], {
-  stdio: 'inherit',
-});
 
 const jwk = JSON.parse(readFileSync(WALLET, 'utf8'));
 const signer = new arbundles.ArweaveSigner(jwk);

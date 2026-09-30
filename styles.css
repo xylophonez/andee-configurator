@@ -1128,31 +1128,6 @@ main {
   color: var(--text-tertiary);
 }
 
-.provider-pack {
-  display: grid;
-  gap: 0.25rem;
-  min-height: 3.25rem;
-  padding: 0.8rem 0.95rem;
-  border-top: 1px solid var(--neutral-3);
-  color: var(--paper);
-  text-decoration: none;
-}
-
-.provider-pack:hover,
-.provider-pack:focus-visible {
-  background: var(--neutral-2);
-}
-
-.provider-pack__title {
-  font-size: 0.78rem;
-}
-
-.provider-pack__detail {
-  color: var(--text-tertiary);
-  font-size: 0.69rem;
-  line-height: 1.4;
-}
-
 .tunnel-status {
   display: flex;
   align-items: center;
