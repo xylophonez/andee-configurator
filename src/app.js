@@ -40,7 +40,8 @@ const findTunnelByPeer = (peer) => {
 };
 
 const state = {
-  layers: ["tunnel"],
+  layers: ["staked-bundler"],
+  deployment: null,
   zoneMode: "join",
   advanced: false,
 };
@@ -253,9 +254,9 @@ function renderCapabilities() {
     const option = event.target.closest(".custom-select__option");
     if (!option) return;
     const id = option.dataset.value;
-    state.layers = state.layers.includes(id)
+    state.layers = id === "staked-bundler" ? [id] : state.layers.includes(id)
       ? state.layers.filter((layer) => layer !== id)
-      : [...state.layers, id];
+      : [...state.layers.filter((layer) => layer !== "staked-bundler"), id];
     refreshLayerUI();
   });
   root.addEventListener("keydown", (event) => {
@@ -383,6 +384,7 @@ function boot() {
   renderZoneOptions();
   bindEvents();
   applyLayers();
+  loadDeployment();
   // Discover in the background. The picker is already usable at this point --
   // the bootstrap router is rendered and selected -- so this only ever adds to
   // it. Failure is silent by design: a page that cannot reach a gateway should
@@ -692,6 +694,7 @@ function bindEvents() {
 
 function applyLayers() {
   const active = new Set(state.layers);
+  el("staked-bundler-card").hidden = !active.has("staked-bundler");
   el("tunnel-card").hidden = !active.has("tunnel");
   el("zone-card").hidden = !active.has("zone");
   el("bundler-card").hidden = !active.has("bundler");
@@ -704,6 +707,7 @@ function applyLayers() {
 function currentChoices() {
   return {
     layers: [...state.layers],
+    deployment: state.deployment,
     zoneMode: state.zoneMode,
     tunnelPeer: el("tunnel-peer").value,
     tunnelWorkers: el("tunnel-workers").value,
@@ -714,6 +718,25 @@ function currentChoices() {
     maxItems: el("max-items").value,
     disableHyperbuddy: el("disable-hyperbuddy").checked,
   };
+}
+
+async function loadDeployment() {
+  try {
+    const response = await fetch("./deployment.json", { cache: "no-store", signal: AbortSignal.timeout(5000) });
+    if (!response.ok) throw new Error("Deployment unavailable");
+    const deployment = await response.json();
+    // Validate before enabling either download or navigation.
+    buildConfig({ layers: ["staked-bundler"], deployment });
+    state.deployment = deployment;
+    el("deployment-status").textContent = "Lab rehearsal · test staking and uploads · no production funding";
+    const link = el("staking-link");
+    link.href = deployment.stakingUrl;
+    link.hidden = false;
+  } catch {
+    state.deployment = null;
+    el("deployment-status").textContent = "Waiting for the reviewed deployment settings. Download will be enabled when they are ready.";
+  }
+  render();
 }
 
 let lastConfigText = "";

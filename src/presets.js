@@ -131,6 +131,12 @@ export const OUROBOROS_SIGNERS = BUNDLER_SIGNERS;
 // enable any combination and control their application order.
 export const CAPABILITIES = [
   {
+    id: "staked-bundler",
+    name: "Staked bundler",
+    blurb: "Everything needed to bundle: public URL, attested zone and bundler. Recommended.",
+    adds: ["tunnel startup and public URL", "zone admission and retry", "native v0.11 bundler"],
+  },
+  {
     id: "tunnel",
     name: "Public access",
     blurb: "Give the node a public URL through a tunnel.",

@@ -55,6 +55,12 @@ export function capabilityById(id) {
  * @param {boolean} [choices.disableHyperbuddy]
  */
 export function buildConfig(choices) {
+  if (choices.layers?.includes("staked-bundler") || choices.profile === "staked-bundler") {
+    if (choices.layers?.some((layer) => layer !== "staked-bundler")) {
+      throw new Error("Staked bundler already includes its required capabilities. Select it on its own.");
+    }
+    return buildStakedBundler(choices);
+  }
   const legacyProfile = choices.profile ? profileById(choices.profile) : null;
   const layers = normalizeLayers(
     Array.isArray(choices.layers) ? choices.layers : layersForProfile(legacyProfile),
@@ -183,6 +189,76 @@ export function buildConfig(choices) {
   }
 
   config["andee-profile-source"] = `andee-configurator/${layers.join("+") || "plain"}`;
+  return sortKeys(config);
+}
+
+/** A release supplies reviewed deployment values; users only save the file. */
+function buildStakedBundler(choices) {
+  const d = choices.deployment;
+  if (!d || d.version !== 1) throw new Error("Staked bundler deployment is not available yet. Download is disabled until it is configured.");
+  // Production funding/owner policy has not been approved. Do not turn a lab
+  // rehearsal into live uploads by silently falling back to public L1.
+  if (d.mode !== "lab") throw new Error("This candidate supports the lab rehearsal only. Production release settings still need review.");
+  const origin = (value, label, httpsOnly = false) => {
+    try {
+      const url = new URL(value);
+      if (!(httpsOnly ? ["https:"] : ["https:", "http:"]).includes(url.protocol) ||
+          url.username || url.password || url.search || url.hash ||
+          !["", "/"].includes(url.pathname)) throw new Error();
+      return url.origin;
+    } catch { throw new Error(`${label} must be a valid ${httpsOnly ? "HTTPS" : "HTTP(S)"} origin.`); }
+  };
+  const id = (value, label) => {
+    if (!/^[A-Za-z0-9_-]{43}$/.test(value ?? "")) throw new Error(`${label} is missing or invalid.`);
+    return value;
+  };
+  const peer = origin(d.tunnel?.peer, "Tunnel", true);
+  const host = new URL(peer).hostname;
+  if (host.length > 200 || /^\d+(\.\d+){3}$/.test(host) || !host.split(".").every((label) =>
+    label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label))) {
+    throw new Error("Tunnel must have a DNS hostname that supports node subdomains.");
+  }
+  const implementation = id(d.tunnel?.implementation, "Tunnel implementation pin");
+  const zonePeer = origin(d.zone?.peer, "Zone");
+  const ring = id(d.zone?.ring, "Zone ring");
+  if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(d.zone?.name ?? "")) throw new Error("Zone name is missing or invalid.");
+  const gateway = origin(d.gateway, "Lab upload gateway");
+  const gatewayHost = new URL(gateway).hostname;
+  const octets = gatewayHost.split(".").map(Number);
+  const privateIPv4 = octets.length === 4 && octets.every((n) => Number.isInteger(n) && n >= 0 && n <= 255) &&
+    (octets[0] === 10 || octets[0] === 127 ||
+      (octets[0] === 192 && octets[1] === 168) ||
+      (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31));
+  if (!privateIPv4 && gatewayHost !== "localhost" && gatewayHost !== "[::1]") {
+    throw new Error("Lab upload gateway must be a private or loopback mock origin; public L1 uploads are disabled.");
+  }
+  origin(d.stakingUrl, "Staking page");
+  const config = {
+    "andee-profile-source": "andee-configurator/staked-bundler",
+    "zone-allow": { [d.zone.name]: zonePeer },
+    "zone-ring-address": ring,
+    "allow-rejected-peer-attestation": false,
+    "bundler-max-items": 1,
+    gateway,
+    routes: [{ template: "^/arweave", node: {
+      match: "^/arweave", with: gateway,
+      // AndEE's JSON import decoder consumes key="type" annotations before
+      // handing the normalized node message to HyperBEAM (andee_bootstrap).
+      opts: { "http-client": "httpc", protocol: "http2", "ao-types": 'http-client="atom", protocol="atom"' },
+    } }],
+    "trusted-devices": { "tunnel@1.1": implementation },
+    on: { start: [
+      { device: "tunnel@1.1", path: "start", method: "POST", peer, workers: 8 },
+      { device: "zone@1.3", path: "start", method: "POST", hook: { result: "ignore" } },
+      {
+        device: "apply@1.0", path: "pair", base: "base:cron-device", request: "base:schedule",
+        "cron-device": { device: "cron@1.0" },
+        schedule: { path: "every", interval: "30-seconds", "cron-path": "/~zone@1.3/start", method: "POST" },
+        hook: { result: "ignore" },
+      },
+    ] },
+  };
+  if (choices.disableHyperbuddy) config["default-index"] = false;
   return sortKeys(config);
 }
 

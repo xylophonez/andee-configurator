@@ -155,6 +155,17 @@ main {
   margin-bottom: 1rem;
 }
 
+.onboarding-steps {
+  padding-left: 1.25rem;
+  margin: 0.6rem 0 1rem;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.onboarding-steps li + li { margin-top: 0.4rem; }
+
+#staking-link { font-size: 0.82rem; }
+
 .section-heading h2 {
   font-size: 0.92rem;
   font-weight: 400;

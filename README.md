@@ -16,6 +16,44 @@ npm run check   # syntax check
 
 No build step. It is plain ES modules and one stylesheet.
 
+## Staked bundler candidate
+
+**Staked bundler** is the first capability and the default selection. It composes
+the v0.11 tunnel startup, zone admission and a 30-second zone retry using the
+existing apply and cron devices. It is a complete preset; selecting another
+capability replaces it.
+
+The hosting deployment supplies `deployment.json` beside `index.html`:
+
+```json
+{
+  "version": 1,
+  "mode": "lab",
+  "tunnel": { "peer": "https://tunnel.example", "implementation": "<43-character implementation ID>" },
+  "zone": { "name": "test-zone", "peer": "http://192.168.1.2:8734", "ring": "<43-character ring address>" },
+  "gateway": "http://192.168.1.2:36245",
+  "stakingUrl": "http://192.168.1.2:5484"
+}
+```
+
+Use real deployment values; the example placeholders deliberately fail
+validation. Missing or invalid deployment settings disable the download. This
+candidate accepts lab deployments with a private mock upload gateway only;
+production funding and deployment settings remain separate release gates.
+
+The generated `next.json` contains no phone address or public URL. A compatible
+AndEE build must provide the pinned tunnel implementation with its `start`
+handler, zone@1.3, apply@1.0 and cron@1.0. Tunnel startup derives the URL from the
+selected peer and the node identity. The configurator does not prove that URL
+is reachable or that zone admission has succeeded.
+
+Download the config, select it with AndEE's **LOAD CONFIG**, choose **APPLY &
+CLOSE**, then reopen AndEE. Copy the public URL from AndEE for the staking page.
+Allow Android notifications to see the running node's URL outside the app.
+
+The profiles below are retained legacy presets; they do not describe this
+v0.11 Staked bundler preset.
+
 Tunnel provider setup is documented in the [PermawebOS tunnels guide](https://lapee.hyperbeam.online/#/run/docs/tunnels). The LapEE operator example is `sample-configs/lapee-tunnel-provider.json` in `arweave://lapee`. The Configurator builds client configs; it does not package provider files.
 
 ## What it produces
@@ -44,7 +82,8 @@ next boot. That distinction matters:
 
 ## The zone
 
-`permawebos` is pre-filled and live:
+The legacy presets contain these `permawebos` defaults. Their present
+availability and security policy must be checked before use:
 
 | | |
 | --- | --- |
@@ -52,9 +91,9 @@ next boot. That distinction matters:
 | ring | `isUcx_QUq_XY-Wdxk66D6FMgoyANEdsgV2na2VDZuTk` |
 | template | `measurement-device: andee@1.0` |
 
-That template is the point: admission runs `~measurement@1.0/verify-peer`
-against it, so a peer that cannot produce a matching AndEE boot measurement is
-refused. It is a zone only genuine AndEE nodes can join.
+That legacy template selects `~measurement@1.0/verify-peer`. The v0.11 preset
+instead uses the deployment's zone and its admission policy; selecting a preset
+alone is not evidence of hardware verification or membership.
 
 **Its peer URL is derived from the hosting node's address**, so it holds only
 while that node keeps its identity. Wiping the host's app data mints a new
@@ -62,7 +101,7 @@ address and the URL stops resolving.
 
 ## Notes worth keeping
 
-- **There is no built-in bundler device.** `~bundler@1.0` is assembled at boot:
+- **The legacy paid profile bootstraps its bundler device.** `~bundler@1.0` is assembled at boot:
   the `lapee-p4-bootstrap@1.0` start hook installs it, and `trusted-devices` /
   `name-resolvers` pin the payment, pricing, settlement and GC devices it needs.
 - **The Bundler card has no fixed price control.** P4 routes bundle uploads to

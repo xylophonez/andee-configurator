@@ -21,7 +21,7 @@
           <andee-phone class="node-phone" status="preview" aria-label="Rotating wireframe AndEE phone"></andee-phone>
           <div class="node-hero__copy" aria-live="polite">
             <h2 id="node-title">Configure your AndEE</h2>
-            <p id="node-detail">Download next.json, then use LOAD CONFIG in AndEE to import it.</p>
+            <p id="node-detail">Save your config, load it in AndEE, then restart to apply it.</p>
           </div>
         </section>
 
@@ -40,7 +40,7 @@
               </span>
               <span class="select-row__copy">
                 <span class="select-row__label" id="capability-count">1 capability</span>
-                <span class="select-row__hint" id="capability-summary">Public access</span>
+                <span class="select-row__hint" id="capability-summary">Staked bundler</span>
               </span>
               <svg class="select-row__chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -55,6 +55,23 @@
             </button>
           </div>
           <ol class="layer-stack" id="layer-stack" aria-label="Applied capability order" aria-live="polite"></ol>
+        </section>
+
+        <section class="settings-group" id="staked-bundler-card" aria-labelledby="staked-heading">
+          <div class="section-heading"><div>
+            <h2 id="staked-heading">Ready to bundle</h2>
+            <p>Public access, zone admission and bundling are included. No node address to enter here.</p>
+          </div></div>
+          <p id="deployment-status" class="inline-note" role="status">Loading deployment settings…</p>
+          <ol class="onboarding-steps">
+            <li>Download <strong>next.json</strong> below.</li>
+            <li>In AndEE, choose <strong>LOAD CONFIG</strong> and select that file.</li>
+            <li>Tap <strong>APPLY &amp; CLOSE</strong>, then reopen AndEE.</li>
+            <li>Copy your public URL from AndEE. It also appears in the running notification if notifications are allowed.</li>
+            <li>Open the staking page, connect your wallet and stake AO using that URL.</li>
+          </ol>
+          <a id="staking-link" target="_blank" rel="noopener noreferrer" hidden>Open AO staking</a>
+          <p class="inline-note">Zone admission still checks your device. A public URL alone does not mean it has been accepted.</p>
         </section>
 
         <section class="settings-group" id="tunnel-card" aria-labelledby="tunnel-heading" hidden>
