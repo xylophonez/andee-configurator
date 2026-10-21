@@ -132,8 +132,8 @@ export const CAPABILITIES = [
   {
     id: "staked-bundler",
     name: "Staked bundler",
-    blurb: "Everything needed to bundle: public URL, attested zone and bundler. Recommended.",
-    adds: ["tunnel startup and public URL", "zone admission and retry", "native v0.11 bundler"],
+    blurb: "Paid bundling and a public URL. Join a zone on the AO staking page. Recommended.",
+    adds: ["tunnel startup and public URL", "paid native v0.11 bundler", "your payout address"],
   },
   {
     id: "tunnel",

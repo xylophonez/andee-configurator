@@ -59,18 +59,18 @@
 
         <section class="settings-group" id="staked-bundler-card" aria-labelledby="staked-heading">
           <div class="section-heading"><div>
-            <h2 id="staked-heading">Ready to bundle</h2>
-            <p>Public access, zone admission and bundling are included. No node address to enter here.</p>
+            <h2 id="staked-heading">Set up your bundler</h2>
+            <p>Configure paid bundling and public access here. Choose and join a zone on the AO staking page.</p>
           </div></div>
           <p id="deployment-status" class="inline-note" role="status">Loading deployment settings…</p>
           <ol class="onboarding-steps">
-            <li>Download <strong>next.json</strong> below.</li>
+            <li>Enter your payout address below, then download <strong>next.json</strong>.</li>
             <li>In AndEE, choose <strong>LOAD CONFIG</strong> and select that file.</li>
             <li>Tap <strong>APPLY &amp; CLOSE</strong>, then reopen AndEE.</li>
             <li>Copy your public URL from AndEE. It also appears in the running notification if notifications are allowed.</li>
-            <li>Open the staking page, connect your wallet and stake AO using that URL.</li>
+            <li>Open the staking page, connect your wallet and enter that URL. The staking flow joins your selected zone before staking AO.</li>
           </ol>
-          <a id="staking-link" target="_blank" rel="noopener noreferrer" hidden>Open AO staking</a>
+          <a id="staking-link" href="https://ao.arweave.net/#/stake/bundle" target="_blank" rel="noopener noreferrer">Open AO staking</a>
           <p class="inline-note">Zone admission still checks your device. A public URL alone does not mean it has been accepted.</p>
         </section>
 
@@ -176,12 +176,13 @@
             </div>
           </div>
           <div class="field-list">
-            <label class="stacked-field">Beneficiary address
-              <input id="beneficiary" type="text" autocomplete="off" spellcheck="false" placeholder="43-character Arweave address" />
+            <label class="stacked-field">Your payout address
+              <input id="beneficiary" type="text" autocomplete="off" spellcheck="false" placeholder="43-character Arweave address" aria-describedby="beneficiary-help beneficiary-error" />
             </label>
-            <p class="error" id="beneficiary-error" hidden>A beneficiary address is required.</p>
+            <p class="inline-note" id="beneficiary-help">Bundling payments go to this address. It may differ from your staking wallet. Enter an address you control and check it before saving.</p>
+            <p class="error" id="beneficiary-error" hidden>Enter a valid 43-character Arweave payout address.</p>
             <p class="inline-note">Bundle uploads receive a live quote based on Arweave bytes, in AO base units. This screen does not set a fixed upload price or payout amount.</p>
-            <div class="field-row field-row--compact">
+            <div class="field-row field-row--compact" id="max-items-field">
               <span>Max items</span>
               <span class="number-stepper">
                 <button type="button" data-step-target="max-items" data-step-direction="down" aria-label="Decrease max items">−</button>

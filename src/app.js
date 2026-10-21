@@ -697,7 +697,8 @@ function applyLayers() {
   el("staked-bundler-card").hidden = !active.has("staked-bundler");
   el("tunnel-card").hidden = !active.has("tunnel");
   el("zone-card").hidden = !active.has("zone");
-  el("bundler-card").hidden = !active.has("bundler");
+  el("bundler-card").hidden = !active.has("bundler") && !active.has("staked-bundler");
+  el("max-items-field").hidden = active.has("staked-bundler");
   el("zone-hint").textContent = state.zoneMode === "host"
     ? "This node may create a zone. Others join it by attesting; a zone reachable only on localhost can be joined by nothing, so keep the tunnel on."
     : "Joined on boot. Admission runs a live measurement check, so only nodes with a matching attestation are admitted.";
@@ -725,18 +726,15 @@ async function loadDeployment() {
     const response = await fetch("./deployment.json", { cache: "no-store", signal: AbortSignal.timeout(5000) });
     if (!response.ok) throw new Error("Deployment unavailable");
     const deployment = await response.json();
-    // Validate before enabling either download or navigation.
-    buildConfig({ layers: ["staked-bundler"], deployment });
+    // render() validates the deployment together with the user's payout address
+    // before enabling a download. Zone selection belongs to the staking UI.
     state.deployment = deployment;
     el("deployment-status").textContent = deployment.mode === "live-test"
-      ? "Live upload test · real AO payments and Arweave uploads · lab zone"
+      ? "Live upload test · real AO payments and Arweave uploads"
       : "Test staking and uploads · real AO payments may apply";
-    const link = el("staking-link");
-    link.href = deployment.stakingUrl;
-    link.hidden = false;
   } catch {
     state.deployment = null;
-    el("deployment-status").textContent = "Waiting for the reviewed deployment settings. Download will be enabled when they are ready.";
+    el("deployment-status").textContent = "Deployment settings are unavailable. Download requires a valid deployment and your payout address.";
   }
   render();
 }

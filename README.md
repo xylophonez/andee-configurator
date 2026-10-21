@@ -19,37 +19,38 @@ No build step. It is plain ES modules and one stylesheet.
 ## Staked bundler candidate
 
 **Staked bundler** is the first capability and the default selection. It composes
-the v0.11 tunnel startup, zone admission and a 30-second zone retry using the
-existing apply and cron devices. It is a complete preset; selecting another
-capability replaces it.
+paid bundling and tunnel startup. Enter your payout address before downloading;
+it may differ from the wallet used to stake. There is no deployment-supplied
+payout fallback. Selecting another capability replaces this preset.
 
-The hosting deployment supplies `deployment.json` beside `index.html`:
+The hosting deployment supplies `deployment.json` beside `index.html`, with
+`version: 1`, an explicit `lab` or `live-test` mode, a tunnel HTTPS peer and
+implementation pin, an upload gateway, and reviewed payment device pins and
+reservation amount. Missing or invalid settings disable the download. Production
+pricing, funding and device publication remain separate release gates.
 
-```json
-{
-  "version": 1,
-  "mode": "lab",
-  "tunnel": { "peer": "https://tunnel.example", "implementation": "<43-character implementation ID>" },
-  "zone": { "name": "test-zone", "peer": "http://192.168.1.2:8734", "ring": "<43-character ring address>" },
-  "gateway": "http://192.168.1.2:36245",
-  "stakingUrl": "http://192.168.1.2:5484"
-}
-```
-
-Use real deployment values; the example placeholders deliberately fail
-validation. Missing or invalid deployment settings disable the download. This
-candidate accepts lab deployments with a private mock upload gateway only;
-production funding and deployment settings remain separate release gates.
+The deployment does not select a zone or supply the payout address. The preset
+emits no `zone-allow`, ring pin, zone startup or zone retry schedule. It preserves
+`allow-rejected-peer-attestation: false`; native zone admission still enforces
+its policy. The existing AO staking flow discovers approved zones from the
+registry and calls the node's join endpoint with the selected zone's peer and
+expected ring address, then registers the node, obtains its signed membership
+proof and submits the stake. The browser coordinates this flow; it does not
+replace the zone's admission checks.
 
 The generated `next.json` contains no phone address or public URL. A compatible
-AndEE build must provide the pinned tunnel implementation with its `start`
-handler, zone@1.3, apply@1.0 and cron@1.0. Tunnel startup derives the URL from the
-selected peer and the node identity. The configurator does not prove that URL
-is reachable or that zone admission has succeeded.
+AndEE build supplies the pinned tunnel implementation with its `start` handler,
+plus the native zone device selected by the staking UI. Tunnel startup derives
+the URL from the selected peer and node identity. The configurator does not
+prove reachability, admission, staking, routing eligibility or AR funding.
 
 Download the config, select it with AndEE's **LOAD CONFIG**, choose **APPLY &
-CLOSE**, then reopen AndEE. Copy the public URL from AndEE for the staking page.
-Allow Android notifications to see the running node's URL outside the app.
+CLOSE**, then reopen AndEE. Copy the public URL from AndEE, open
+[AO bundler staking](https://ao.arweave.net/#/stake/bundle), connect your staking
+wallet and follow its zone/join/stake flow. Allow Android notifications to see
+the running node's URL outside the app. Fresh-boot rejoining and stake rebinding
+must be validated separately; the configurator does not install a fixed-zone
+rejoin policy.
 
 The profiles below are retained legacy presets; they do not describe this
 v0.11 Staked bundler preset.
@@ -91,9 +92,9 @@ availability and security policy must be checked before use:
 | ring | `isUcx_QUq_XY-Wdxk66D6FMgoyANEdsgV2na2VDZuTk` |
 | template | `measurement-device: andee@1.0` |
 
-That legacy template selects `~measurement@1.0/verify-peer`. The v0.11 preset
-instead uses the deployment's zone and its admission policy; selecting a preset
-alone is not evidence of hardware verification or membership.
+That legacy template selects `~measurement@1.0/verify-peer`. With the v0.11
+staked preset, ao-site selects the zone during staking; selecting a configurator
+preset alone is not evidence of hardware verification or membership.
 
 **Its peer URL is derived from the hosting node's address**, so it holds only
 while that node keeps its identity. Wiping the host's app data mints a new

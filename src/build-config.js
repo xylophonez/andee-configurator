@@ -192,7 +192,7 @@ export function buildConfig(choices) {
   return sortKeys(config);
 }
 
-/** A release supplies reviewed deployment values; users only save the file. */
+/** Compose paid bundling; ao-site selects and joins the zone during staking. */
 function buildStakedBundler(choices) {
   const d = choices.deployment;
   if (!d || d.version !== 1) throw new Error("Staked bundler deployment is not available yet. Download is disabled until it is configured.");
@@ -218,9 +218,6 @@ function buildStakedBundler(choices) {
     throw new Error("Tunnel must have a DNS hostname that supports node subdomains.");
   }
   const implementation = id(d.tunnel?.implementation, "Tunnel implementation pin");
-  const zonePeer = origin(d.zone?.peer, "Zone");
-  const ring = id(d.zone?.ring, "Zone ring");
-  if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(d.zone?.name ?? "")) throw new Error("Zone name is missing or invalid.");
   const gateway = origin(d.gateway, "Upload gateway", d.mode === "live-test");
   const gatewayHost = new URL(gateway).hostname;
   const octets = gatewayHost.split(".").map(Number);
@@ -231,12 +228,11 @@ function buildStakedBundler(choices) {
   if (d.mode === "lab" && !privateIPv4 && gatewayHost !== "localhost" && gatewayHost !== "[::1]") {
     throw new Error("Lab upload gateway must be a private or loopback mock origin; public L1 uploads are disabled.");
   }
-  origin(d.stakingUrl, "Staking page");
   // Reuse the paid-bundler composition. Payouts need a durable beneficiary;
   // silently defaulting to an ephemeral node wallet strands operator revenue.
   const paid = buildConfig({
     layers: ["bundler"],
-    beneficiary: id(d.beneficiary, "Beneficiary"),
+    beneficiary: id((choices.beneficiary || "").trim(), "Bundler beneficiary"),
     maxItems: 1,
   });
   if (!d.payments) throw new Error("Reviewed payment deployment is required.");
@@ -283,8 +279,6 @@ function buildStakedBundler(choices) {
   const config = {
     ...paid,
     "andee-profile-source": "andee-configurator/staked-bundler",
-    "zone-allow": { [d.zone.name]: zonePeer },
-    "zone-ring-address": ring,
     "allow-rejected-peer-attestation": false,
     "bundler-max-items": 1,
     "paid-auto-withdraw": true,
@@ -310,13 +304,6 @@ function buildStakedBundler(choices) {
       { device: "patch@1.0", path: "all",
         "patch-from": "req:body/paid-auto-withdraw", "patch-to": "body/ao-payment-auto-withdraw" },
       { device: "tunnel@1.1", path: "start", method: "POST", peer, workers: 8 },
-      { device: "zone@1.3", path: "start", method: "POST", hook: { result: "ignore" } },
-      {
-        device: "apply@1.0", path: "pair", base: "base:cron-device", request: "base:schedule",
-        "cron-device": { device: "cron@1.0" },
-        schedule: { path: "every", interval: "30-seconds", "cron-path": "/~zone@1.3/start", method: "POST" },
-        hook: { result: "ignore" },
-      },
     ] },
   };
   if (choices.disableHyperbuddy) config["default-index"] = false;
