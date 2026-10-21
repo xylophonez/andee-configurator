@@ -146,7 +146,13 @@ gone.
 
 ## Deploying and the Android pin
 
-`deploy.mjs` signs and uploads each static asset through a paid bundler, then
+Run `npm ci` to install the pinned publishing dependency. Set
+`ANDEE_DEPLOY_WALLET` explicitly to the approved publishing wallet and
+`ANDEE_DEPLOY_RECEIPT` to a file under `build/`. Run
+`ANDEE_DEPLOY_DRY_RUN=1 node deploy.mjs` to validate the complete asset set and
+public deployment without signing or uploading.
+
+`deploy.mjs` signs and uploads each static asset, including `deployment.json`, through a bundler, then
 uploads an Arweave path manifest. Every publication gets a new immutable
 manifest ID. The current Android `OrnamentActivity` opens the fixed URL
 `https://arweave.net/BD8gs73YRzTwOJ0YpDTE3DOxjbQQ8vhhgIVJc11T_mA/`, so

@@ -6,13 +6,13 @@
 //
 // The `bundler-subject: body` header is required: without it the node parses the
 // item as the request message itself and the upload 404s through its own device.
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import * as arbundles from 'arbundles';
+import { buildConfig } from './src/build-config.js';
 
 const BUNDLER = 'https://bundler.mystical.computer/~bundler@1.0/tx';
-const WALLET = process.env.ANDEE_DEPLOY_WALLET
-  ?? '/home/fn/Dev/reference-owner/wallet.json';
+const WALLET = process.env.ANDEE_DEPLOY_WALLET;
 
 // Paths are relative to the repo root and become the manifest's paths.
 // Every module app.js pulls in must be here: a manifest missing one entry
@@ -27,8 +27,36 @@ const FILES = [
   ['src/theme.js', 'text/javascript'],
   ['src/andee-phone.js', 'text/javascript'],
   ['src/tunnel-discovery.js', 'text/javascript'],
+  ['deployment.json', 'application/json'],
 ];
 
+// Check the complete static publication before signing or sending any item.
+const assets = FILES.map(([path, type]) => [path, type, readFileSync(new URL(path, import.meta.url))]);
+const deployment = JSON.parse(assets.find(([path]) => path === 'deployment.json')[2]);
+if (deployment.mode !== 'live-test') throw new Error('Public publication requires the reviewed live-test deployment.');
+for (const endpoint of [deployment.gateway, deployment.tunnel?.peer]) {
+  const url = new URL(endpoint);
+  if (url.protocol !== 'https:' || url.hostname === 'localhost' || !url.hostname.includes('.') ||
+      /^[\d.]+$/.test(url.hostname) || url.hostname.includes(':') ||
+      /\.(local|localhost|lan|home|internal|test|invalid|example|arpa)$/.test(url.hostname)) {
+    throw new Error('Public deployment endpoints must use public HTTPS DNS names.');
+  }
+}
+if (['zone', 'beneficiary', 'stakingUrl'].some(key => key in deployment)) {
+  throw new Error('Zone selection and payout addresses must not be supplied by the deployment.');
+}
+// A synthetic address validates composition only; it is never published as a payout.
+buildConfig({ layers: ['staked-bundler'], deployment, beneficiary: 'a'.repeat(43) });
+const receipt = { files: {}, manifestId: null };
+const record = () => {
+  if (process.env.ANDEE_DEPLOY_RECEIPT) writeFileSync(process.env.ANDEE_DEPLOY_RECEIPT, JSON.stringify(receipt, null, 2) + '\n');
+};
+if (process.env.ANDEE_DEPLOY_DRY_RUN === '1') {
+  console.log(`Validated ${assets.length} static assets and public deployment; nothing signed or uploaded.`);
+  process.exit(0);
+}
+
+if (!WALLET) throw new Error('Set ANDEE_DEPLOY_WALLET to the approved publishing wallet.');
 const jwk = JSON.parse(readFileSync(WALLET, 'utf8'));
 const signer = new arbundles.ArweaveSigner(jwk);
 
@@ -57,9 +85,9 @@ async function upload(data, tags, label) {
 
 console.log('uploading files');
 const paths = {};
-for (const [path, contentType] of FILES) {
+for (const [path, contentType, data] of assets) {
   const id = await upload(
-    readFileSync(new URL(path, import.meta.url)),
+    data,
     [
       { name: 'Content-Type', value: contentType },
       { name: 'App-Name', value: 'andee-configurator' },
@@ -67,6 +95,8 @@ for (const [path, contentType] of FILES) {
     basename(path),
   );
   paths[path] = { id };
+  receipt.files[path] = { id, contentType, bytes: data.length };
+  record();
 }
 
 const manifest = {
@@ -89,4 +119,7 @@ const manifestId = await upload(
   'manifest',
 );
 
+receipt.manifestId = manifestId;
+receipt.url = `https://arweave.net/${manifestId}/`;
+record();
 console.log(`\napp: https://arweave.net/${manifestId}/`);

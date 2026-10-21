@@ -8,5 +8,8 @@
     "serve": "python3 -m http.server 5482 --bind 127.0.0.1",
     "test": "node --test test/*.test.mjs",
     "check": "node --check src/app.js && node --check src/andee-phone.js && node --check src/build-config.js && node --check src/presets.js && node --check src/theme.js && node --check src/tunnel-discovery.js"
+  },
+  "devDependencies": {
+    "arbundles": "0.11.2"
   }
 }
