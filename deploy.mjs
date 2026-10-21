@@ -33,7 +33,7 @@ const FILES = [
 // Check the complete static publication before signing or sending any item.
 const assets = FILES.map(([path, type]) => [path, type, readFileSync(new URL(path, import.meta.url))]);
 const deployment = JSON.parse(assets.find(([path]) => path === 'deployment.json')[2]);
-if (deployment.mode !== 'live-test') throw new Error('Public publication requires the reviewed live-test deployment.');
+if (deployment.mode !== 'production') throw new Error('Public publication requires a verified production deployment; test and unavailable manifests cannot be published.');
 for (const endpoint of [deployment.gateway, deployment.tunnel?.peer]) {
   const url = new URL(endpoint);
   if (url.protocol !== 'https:' || url.hostname === 'localhost' || !url.hostname.includes('.') ||

@@ -132,11 +132,10 @@ export function buildConfig(choices) {
         "bundler-free-byte-limit": 0,
         "bundler-max-items": clampInt(choices.maxItems, 1, 10000, 1000),
         "bundler-max-bundle-dispatch-delay": 2000,
-        "lapee-bundler-completed-item-retention-ms": 0,
+        "lapee-bundler-completed-item-retention-ms": 900000,
         // P4 routes bundler uploads to live Arweave-byte quotes in AO base
         // units. Keep the legacy simple-pay default from the paid profile.
         "simple-pay-price": 0,
-        "ao-payment-ledger": "ledger",
         "ao-payment-ledger-path": "/ledger~node-process@1.0",
         "arweave-byte-price": "dynamic",
         "arweave-mempool-copycat-on-bundle-complete": true,
@@ -197,7 +196,8 @@ function buildStakedBundler(choices) {
   const d = choices.deployment;
   if (!d || d.version !== 1) throw new Error("Staked bundler deployment is not available yet. Download is disabled until it is configured.");
   // Live upload testing is explicit; the zone's production policy is separate.
-  if (!["lab", "live-test"].includes(d.mode)) throw new Error("Production release settings still need review. Select an explicit lab or live-test deployment.");
+  if (d.mode === "unavailable") throw new Error("Staked bundler release is awaiting verified device packages and tunnel settings. Download is disabled.");
+  if (!["lab", "live-test", "production"].includes(d.mode)) throw new Error("Unknown deployment mode.");
   const origin = (value, label, httpsOnly = false) => {
     try {
       const url = new URL(value);
@@ -217,8 +217,17 @@ function buildStakedBundler(choices) {
     label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label))) {
     throw new Error("Tunnel must have a DNS hostname that supports node subdomains.");
   }
+  if (d.mode === "production") {
+    for (const [value, label] of [[d.tunnel?.peer, "Tunnel"], [d.gateway, "Upload gateway"]]) {
+      const url = new URL(origin(value, label, true));
+      if (!url.hostname.includes(".") || /^[\d.]+$/.test(url.hostname) || url.hostname.includes(":") ||
+          /\.(local|localhost|lan|home|internal|test|invalid|example|arpa)$/.test(url.hostname)) {
+        throw new Error(`${label} must use a public HTTPS DNS name in production.`);
+      }
+    }
+  }
   const implementation = id(d.tunnel?.implementation, "Tunnel implementation pin");
-  const gateway = origin(d.gateway, "Upload gateway", d.mode === "live-test");
+  const gateway = origin(d.gateway, "Upload gateway", d.mode !== "lab");
   const gatewayHost = new URL(gateway).hostname;
   const octets = gatewayHost.split(".").map(Number);
   const privateIPv4 = octets.length === 4 && octets.every((n) => Number.isInteger(n) && n >= 0 && n <= 255) &&
@@ -233,7 +242,7 @@ function buildStakedBundler(choices) {
   const paid = buildConfig({
     layers: ["bundler"],
     beneficiary: id((choices.beneficiary || "").trim(), "Bundler beneficiary"),
-    maxItems: 1,
+    maxItems: choices.maxItems,
   });
   if (!d.payments) throw new Error("Reviewed payment deployment is required.");
   if (d.payments) {
@@ -256,60 +265,30 @@ function buildStakedBundler(choices) {
     }
     paid.on.start[0].device = paid["name-resolvers"][0]["lapee-p4-bootstrap@1.0"];
   }
-  // The established bootstrap creates the ledger and response processor.
-  // Compose native P4 with the pinned v0.11 request chain (hb_opts.erl:542),
-  // preserving authentication, rate limiting, names and blacklist checks.
-  // P4 precedes the generic handlers so its balance route finds its ledger.
   delete paid.on.request;
-  const devices = paid["name-resolvers"][0];
-  const processor = {
-    device: "p4@1.0",
-    "ledger-device": devices["ao-payment@1.0"],
-    "ledger-path": paid["ao-payment-ledger-path"],
-    "pricing-device": devices["pricing-router@1.0"],
-    "default-pricing-device": "simple-pay@1.0",
-    "arweave-byte-price": paid["arweave-byte-price"],
-    "bundler-free-byte-limit": paid["bundler-free-byte-limit"],
-    "bundler-premium": paid["bundler-premium"],
-    "pricing-routes": ["tx", "item"].map((path) => ({
-      template: `/~bundler@1.0/${path}`,
-      "pricing-device": devices["arweave-byte-pricing@1.0"],
-    })),
-  };
+  // The bootstrap owns the ledger, request/response processors and payout.
+  // Inherit HyperBEAM's request hooks; do not copy or replace them here.
   const config = {
     ...paid,
     "andee-profile-source": "andee-configurator/staked-bundler",
     "allow-rejected-peer-attestation": false,
-    "bundler-max-items": 1,
-    "paid-auto-withdraw": true,
-    "paid-request-hooks": [processor,
-      { device: "rate-limit@1.0" },
-      { device: "auth-hook@1.0", path: "request", when: { keys: ["authorization", "!"] },
-        "secret-provider": { device: "http-auth@1.0", "access-control": { device: "http-auth@1.0" } } },
-      { device: "name@1.0" }, { device: "manifest@1.0" }, { device: "blacklist@1.0" }],
     gateway,
     routes: [{ template: "^/arweave", node: {
       match: "^/arweave", with: gateway,
       // AndEE's JSON import decoder consumes key="type" annotations before
       // handing the normalized node message to HyperBEAM (andee_bootstrap).
-      opts: { "http-client": d.mode === "live-test" ? "hackney" : "httpc", protocol: "http2", "ao-types": 'http-client="atom", protocol="atom"' },
+      opts: { "http-client": d.mode !== "lab" ? "hackney" : "httpc", protocol: "http2", "ao-types": 'http-client="atom", protocol="atom"' },
     } }, {
       // hb_client_gateway resolves public device metadata through /graphql.
       // Keep this route when replacing the node's default route list.
       template: "/graphql", node: { prefix: gateway, opts: {
-        "http-client": d.mode === "live-test" ? "hackney" : "httpc",
+        "http-client": d.mode !== "lab" ? "hackney" : "httpc",
         protocol: "http2", "ao-types": 'http-client="atom", protocol="atom"',
       } },
     }],
     "trusted-devices": { ...paid["trusted-devices"], "tunnel@1.1": implementation },
     on: { ...paid.on, start: [
       ...paid.on.start,
-      { device: "patch@1.0", path: "all",
-        "patch-from": "req:body/paid-request-hooks", "patch-to": "body/on/request" },
-      // Reviewed AO payment binds one payout to the actual durable P4 debit.
-      // Its withdrawal receipt distinguishes submission from settlement.
-      { device: "patch@1.0", path: "all",
-        "patch-from": "req:body/paid-auto-withdraw", "patch-to": "body/ao-payment-auto-withdraw" },
       { device: "tunnel@1.1", path: "start", method: "POST", peer, workers: 8 },
     ] },
   };

@@ -6,7 +6,7 @@ import { CAPABILITIES } from "../src/presets.js";
 export const deployment = {
   version: 1, mode: "lab",
   tunnel: { peer: "https://tunnel.example", implementation: "a".repeat(43) },
-  gateway: "http://192.168.1.194:36245",
+  gateway: "http://127.0.0.1:36245",
   payments: { reservationAmount: 10000000000, devices: Object.fromEntries([
     "ao-payment@1.2", "arweave-byte-pricing@1.0", "lapee-p4-bootstrap@1.1",
     "lapee-bundler-gc@1.0", "pricing-router@1.0", "simple-oracle@1.0",
@@ -24,9 +24,9 @@ test("recommended preset composes v0.11 devices without phone-specific input", (
   assert.equal(config["allow-rejected-peer-attestation"], false);
   assert.equal(config["zone-allow"], undefined);
   assert.equal(config["zone-ring-address"], undefined);
-  assert.equal(config.on.start[3].path, "start");
-  assert.equal(config.on.start[3].hook, undefined, "URL result must reach subsequent hooks");
-  assert.equal(config.on.start.length, 4);
+  assert.equal(config.on.start[1].path, "start");
+  assert.equal(config.on.start[1].hook, undefined, "URL result must reach subsequent hooks");
+  assert.equal(config.on.start.length, 2);
   assert.ok(!JSON.stringify(config.on).includes("zone@"));
   assert.ok(!JSON.stringify(config.on).includes("cron@"));
   assert.equal(config["trusted-devices"]["tunnel@1.1"], deployment.tunnel.implementation);
@@ -44,16 +44,18 @@ test("recommended preset composes v0.11 devices without phone-specific input", (
   }
   assert.ok(config["name-resolvers"][0]["ao-payment@1.0"]);
   assert.equal(config["name-resolvers"][0]["ao-payment@1.0"], deployment.payments.devices["ao-payment@1.2"].spec);
-  assert.equal(config["paid-auto-withdraw"], true);
+  assert.equal(config["paid-auto-withdraw"], undefined);
   assert.equal(config.on.request, undefined);
-  assert.deepEqual(config.on.start[2], { device: "patch@1.0", path: "all", "patch-from": "req:body/paid-auto-withdraw", "patch-to": "body/ao-payment-auto-withdraw" });
-  assert.deepEqual(config["paid-request-hooks"].map(h => h.device), ["p4@1.0", "rate-limit@1.0", "auth-hook@1.0", "name@1.0", "manifest@1.0", "blacklist@1.0"]);
+  assert.equal(config["paid-request-hooks"], undefined);
+  assert.equal(config["bundler-max-items"], 1000);
+  assert.equal(config["lapee-bundler-completed-item-retention-ms"], 900000);
+  assert.equal(config["ao-payment-ledger"], undefined);
   assert.ok(!JSON.stringify(config).includes("0ER8"), "no obsolete paid-profile bootstrap");
 });
 
 test("incomplete deployment and mixed legacy layers cannot produce a download", () => {
   assert.throws(() => build(null), /not available/);
-  assert.throws(() => build({ ...deployment, mode: "production" }), /review/);
+  assert.throws(() => build({ ...deployment, mode: "unavailable" }), /disabled/);
   assert.throws(() => build({ ...deployment, tunnel: { peer: "https://tunnel.example" } }), /pin/);
   assert.throws(() => build(deployment, ""), /beneficiary/);
   assert.throws(() => build({ ...deployment, payments: undefined }), /payment deployment/);
@@ -65,7 +67,7 @@ test("live uploads require explicit live-test mode and HTTPS", () => {
   const config = build(live);
   assert.equal(config.gateway, live.gateway);
   assert.equal(config.routes[0].node.with, live.gateway);
-  assert.equal(config["paid-auto-withdraw"], true);
+  assert.equal(config["paid-auto-withdraw"], undefined);
   assert.throws(() => build({ ...live, gateway: "http://arweave.net" }), /HTTPS/);
   assert.throws(() => build({ ...live, gateway: "https://user:pass@arweave.net" }), /HTTPS/);
 });
@@ -100,8 +102,22 @@ test("payout is user supplied, validated and independent of deployment ownership
 
 test("stale deployment zone and staking settings cannot constrain the node", () => {
   const stale = { ...deployment,
-    zone: { name: "old-lab-zone", peer: "http://192.168.1.194:28753", ring: "b".repeat(43) },
-    stakingUrl: "http://192.168.1.194:5484",
+    zone: { name: "old-lab-zone", peer: "http://127.0.0.1:28753", ring: "b".repeat(43) },
+    stakingUrl: "http://127.0.0.1:5484",
   };
   assert.deepEqual(build(stale), build());
+});
+
+
+test("production forbids private endpoints and test manifests cannot become the public default", async () => {
+  const production = { ...deployment, mode: "production", gateway: "https://arweave.net",
+    tunnel: { ...deployment.tunnel, peer: "https://broker.public-domain.com" } };
+  assert.equal(build(production)["bundler-max-items"], 1000);
+  for (const gateway of ["http://arweave.net", "https://192.168.1.2", "https://lab.home.arpa", "https://localhost", "https://[::1]"]) {
+    assert.throws(() => build({ ...production, gateway }), /HTTPS/);
+  }
+  const { readFile } = await import("node:fs/promises");
+  const current = JSON.parse(await readFile(new URL("../deployment.json", import.meta.url)));
+  assert.equal(current.mode, "unavailable");
+  assert.throws(() => build(current), /disabled/);
 });

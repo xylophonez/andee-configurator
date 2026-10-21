@@ -698,7 +698,7 @@ function applyLayers() {
   el("tunnel-card").hidden = !active.has("tunnel");
   el("zone-card").hidden = !active.has("zone");
   el("bundler-card").hidden = !active.has("bundler") && !active.has("staked-bundler");
-  el("max-items-field").hidden = active.has("staked-bundler");
+  el("max-items-field").hidden = false;
   el("zone-hint").textContent = state.zoneMode === "host"
     ? "This node may create a zone. Others join it by attesting; a zone reachable only on localhost can be joined by nothing, so keep the tunnel on."
     : "Joined on boot. Admission runs a live measurement check, so only nodes with a matching attestation are admitted.";
@@ -729,7 +729,11 @@ async function loadDeployment() {
     // render() validates the deployment together with the user's payout address
     // before enabling a download. Zone selection belongs to the staking UI.
     state.deployment = deployment;
-    el("deployment-status").textContent = deployment.mode === "live-test"
+    el("deployment-status").textContent = deployment.mode === "unavailable"
+      ? "Release settings await verified device packages and tunnel provider. Downloads are disabled."
+      : deployment.mode === "production"
+      ? "Staked bundler · real AO payments and Arweave uploads"
+      : deployment.mode === "live-test"
       ? "Live upload test · real AO payments and Arweave uploads"
       : "Test staking and uploads · real AO payments may apply";
   } catch {
