@@ -728,7 +728,9 @@ async function loadDeployment() {
     // Validate before enabling either download or navigation.
     buildConfig({ layers: ["staked-bundler"], deployment });
     state.deployment = deployment;
-    el("deployment-status").textContent = "Lab rehearsal · test staking and uploads · no production funding";
+    el("deployment-status").textContent = deployment.mode === "live-test"
+      ? "Live upload test · real AO payments and Arweave uploads · lab zone"
+      : "Test staking and uploads · real AO payments may apply";
     const link = el("staking-link");
     link.href = deployment.stakingUrl;
     link.hidden = false;

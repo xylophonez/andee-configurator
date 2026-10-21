@@ -196,9 +196,8 @@ export function buildConfig(choices) {
 function buildStakedBundler(choices) {
   const d = choices.deployment;
   if (!d || d.version !== 1) throw new Error("Staked bundler deployment is not available yet. Download is disabled until it is configured.");
-  // Production funding/owner policy has not been approved. Do not turn a lab
-  // rehearsal into live uploads by silently falling back to public L1.
-  if (d.mode !== "lab") throw new Error("This candidate supports the lab rehearsal only. Production release settings still need review.");
+  // Live upload testing is explicit; the zone's production policy is separate.
+  if (!["lab", "live-test"].includes(d.mode)) throw new Error("Production release settings still need review. Select an explicit lab or live-test deployment.");
   const origin = (value, label, httpsOnly = false) => {
     try {
       const url = new URL(value);
@@ -222,32 +221,94 @@ function buildStakedBundler(choices) {
   const zonePeer = origin(d.zone?.peer, "Zone");
   const ring = id(d.zone?.ring, "Zone ring");
   if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(d.zone?.name ?? "")) throw new Error("Zone name is missing or invalid.");
-  const gateway = origin(d.gateway, "Lab upload gateway");
+  const gateway = origin(d.gateway, "Upload gateway", d.mode === "live-test");
   const gatewayHost = new URL(gateway).hostname;
   const octets = gatewayHost.split(".").map(Number);
   const privateIPv4 = octets.length === 4 && octets.every((n) => Number.isInteger(n) && n >= 0 && n <= 255) &&
     (octets[0] === 10 || octets[0] === 127 ||
       (octets[0] === 192 && octets[1] === 168) ||
       (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31));
-  if (!privateIPv4 && gatewayHost !== "localhost" && gatewayHost !== "[::1]") {
+  if (d.mode === "lab" && !privateIPv4 && gatewayHost !== "localhost" && gatewayHost !== "[::1]") {
     throw new Error("Lab upload gateway must be a private or loopback mock origin; public L1 uploads are disabled.");
   }
   origin(d.stakingUrl, "Staking page");
+  // Reuse the paid-bundler composition. Payouts need a durable beneficiary;
+  // silently defaulting to an ephemeral node wallet strands operator revenue.
+  const paid = buildConfig({
+    layers: ["bundler"],
+    beneficiary: id(d.beneficiary, "Beneficiary"),
+    maxItems: 1,
+  });
+  if (!d.payments) throw new Error("Reviewed payment deployment is required.");
+  if (d.payments) {
+    if (!Number.isSafeInteger(d.payments.reservationAmount) || d.payments.reservationAmount <= 0) {
+      throw new Error("Payment reservation amount must be a positive integer in atomic AO units.");
+    }
+    paid["ao-payment-reservation-amount"] = d.payments.reservationAmount;
+    for (const name of ["ao-payment@1.2", "arweave-byte-pricing@1.0",
+      "lapee-p4-bootstrap@1.1", "lapee-bundler-gc@1.0",
+      "pricing-router@1.0", "simple-oracle@1.0"]) {
+      const pin = d.payments.devices?.[name];
+      const spec = id(pin?.spec, `${name} specification`);
+      const impl = id(pin?.implementation, `${name} implementation`);
+      const alias = ({ "ao-payment@1.2": "ao-payment@1.0",
+        "lapee-p4-bootstrap@1.1": "lapee-p4-bootstrap@1.0" })[name] ?? name;
+      delete paid["trusted-devices"][paid["name-resolvers"][0][alias]];
+      paid["name-resolvers"][0][alias] = spec;
+      paid["name-resolvers"][0][name] = spec;
+      Object.assign(paid["trusted-devices"], { [alias]: impl, [name]: impl, [spec]: impl });
+    }
+    paid.on.start[0].device = paid["name-resolvers"][0]["lapee-p4-bootstrap@1.0"];
+  }
+  // The established bootstrap creates the ledger and response processor.
+  // Compose native P4 with the pinned v0.11 request chain (hb_opts.erl:542),
+  // preserving authentication, rate limiting, names and blacklist checks.
+  // P4 precedes the generic handlers so its balance route finds its ledger.
+  delete paid.on.request;
+  const devices = paid["name-resolvers"][0];
+  const processor = {
+    device: "p4@1.0",
+    "ledger-device": devices["ao-payment@1.0"],
+    "ledger-path": paid["ao-payment-ledger-path"],
+    "pricing-device": devices["pricing-router@1.0"],
+    "default-pricing-device": "simple-pay@1.0",
+    "arweave-byte-price": paid["arweave-byte-price"],
+    "bundler-free-byte-limit": paid["bundler-free-byte-limit"],
+    "bundler-premium": paid["bundler-premium"],
+    "pricing-routes": ["tx", "item"].map((path) => ({
+      template: `/~bundler@1.0/${path}`,
+      "pricing-device": devices["arweave-byte-pricing@1.0"],
+    })),
+  };
   const config = {
+    ...paid,
     "andee-profile-source": "andee-configurator/staked-bundler",
     "zone-allow": { [d.zone.name]: zonePeer },
     "zone-ring-address": ring,
     "allow-rejected-peer-attestation": false,
     "bundler-max-items": 1,
+    "paid-auto-withdraw": true,
+    "paid-request-hooks": [processor,
+      { device: "rate-limit@1.0" },
+      { device: "auth-hook@1.0", path: "request", when: { keys: ["authorization", "!"] },
+        "secret-provider": { device: "http-auth@1.0", "access-control": { device: "http-auth@1.0" } } },
+      { device: "name@1.0" }, { device: "manifest@1.0" }, { device: "blacklist@1.0" }],
     gateway,
     routes: [{ template: "^/arweave", node: {
       match: "^/arweave", with: gateway,
       // AndEE's JSON import decoder consumes key="type" annotations before
       // handing the normalized node message to HyperBEAM (andee_bootstrap).
-      opts: { "http-client": "httpc", protocol: "http2", "ao-types": 'http-client="atom", protocol="atom"' },
+      opts: { "http-client": d.mode === "live-test" ? "hackney" : "httpc", protocol: "http2", "ao-types": 'http-client="atom", protocol="atom"' },
     } }],
-    "trusted-devices": { "tunnel@1.1": implementation },
-    on: { start: [
+    "trusted-devices": { ...paid["trusted-devices"], "tunnel@1.1": implementation },
+    on: { ...paid.on, start: [
+      ...paid.on.start,
+      { device: "patch@1.0", path: "all",
+        "patch-from": "req:body/paid-request-hooks", "patch-to": "body/on/request" },
+      // Reviewed AO payment binds one payout to the actual durable P4 debit.
+      // Its withdrawal receipt distinguishes submission from settlement.
+      { device: "patch@1.0", path: "all",
+        "patch-from": "req:body/paid-auto-withdraw", "patch-to": "body/ao-payment-auto-withdraw" },
       { device: "tunnel@1.1", path: "start", method: "POST", peer, workers: 8 },
       { device: "zone@1.3", path: "start", method: "POST", hook: { result: "ignore" } },
       {

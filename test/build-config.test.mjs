@@ -49,7 +49,7 @@ test("bundler profile installs the p4 bootstrap hook and pins its devices", () =
   const config = buildConfig({ ...base, profile: "bundler" });
   const devices = config.on.start.map((h) => h.device);
   assert.ok(devices.includes("tunnel@1.0"));
-  assert.ok(devices.includes("RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ"));
+  assert.ok(devices.includes("xC0kc--Ata4MPzJDyKqLSfWGal5OC2NiAtw0y9ZNf7Q"));
   assert.equal(config["bundler-beneficiary"], base.beneficiary);
   assert.ok(config["trusted-devices"]["lapee-p4-bootstrap@1.0"]);
   assert.deepEqual(config.on.request, [{ device: "manifest@1.0" }]);
@@ -150,7 +150,7 @@ test("capabilities are additive instead of exclusive", () => {
     zoneMode: "join",
   });
   assert.ok(config.on.start.some((hook) => hook.device === "tunnel@1.0"));
-  assert.ok(config.on.start.some((hook) => hook.device === "RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ"));
+  assert.ok(config.on.start.some((hook) => hook.device === "xC0kc--Ata4MPzJDyKqLSfWGal5OC2NiAtw0y9ZNf7Q"));
   assert.deepEqual(config["zone-allow"], { [zone.name]: zone.peer });
   assert.equal(config["trusted-devices"]["andock@1.0"], ANDOCK_IMPL);
   assert.equal(config["bundler-beneficiary"], base.beneficiary);
@@ -161,7 +161,7 @@ test("layer order controls start-hook order", () => {
   const config = buildConfig({ ...base, layers: ["bundler", "tunnel"] });
   assert.deepEqual(
     config.on.start.map((hook) => hook.device),
-    ["RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ", "tunnel@1.0"],
+    ["xC0kc--Ata4MPzJDyKqLSfWGal5OC2NiAtw0y9ZNf7Q", "tunnel@1.0"],
   );
 });
 

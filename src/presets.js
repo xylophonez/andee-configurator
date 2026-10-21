@@ -60,16 +60,15 @@ export const ZONES = [
 
 export const TUNNEL_TRUSTED = { "tunnel@1.0": TUNNEL_IMPL };
 
-// Remote devices the paid-bundler profile is assembled from. There is no
-// built-in bundler device in this build: ~bundler@1.0 comes up because the
-// lapee-p4-bootstrap start hook installs it, and these pins let it load.
+// Remote payment and pricing devices composed with the native v0.11 bundler.
+// The lapee-p4-bootstrap start hook creates its ledger and P4 processors.
 export const BUNDLER_NAME_RESOLVERS = [
   {
     "ao-payment@1.0": "B0tLXS0jzRtLkn-3DGhSmuGZwrEQH0-Jxg5-UFUVh1s",
     "arweave-byte-pricing@1.0": "LMByssb9jjrc2DUQOucor4t0Zni0JOViiY6PZmGgHRU",
     "bundler-settlement@1.0": "Nu-wM8Pdq4r6MTOKYFXnM6Jn0vAeGI732l-TsOcmazY",
     "lapee-bundler-gc@1.0": "obuc_4WtzF1vHZT17s3iV07O-qzgQuSAfmjECpehcYQ",
-    "lapee-p4-bootstrap@1.0": "RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ",
+    "lapee-p4-bootstrap@1.0": "xC0kc--Ata4MPzJDyKqLSfWGal5OC2NiAtw0y9ZNf7Q",
     "pricing-router@1.0": "UH8LNK2WMtgVBhQ6YCkk5dPyKbp3hHsb9pWCznVfYNA",
     "simple-oracle@1.0": "SGIOFvYoRKYIj3bC9_3Ggv2n0lNCOoSRrWJyHUrKeKg",
   },
@@ -87,8 +86,8 @@ export const BUNDLER_TRUSTED = {
   "Nu-wM8Pdq4r6MTOKYFXnM6Jn0vAeGI732l-TsOcmazY": "oeJGtUCutNdfszNuwGs0r7VW_inRhuFl_nDYraIRWjk",
   "lapee-bundler-gc@1.0": "AKXhtDqE_U7L275NMuZAqLvJm6rREgHajkfez1ugLTk",
   "obuc_4WtzF1vHZT17s3iV07O-qzgQuSAfmjECpehcYQ": "AKXhtDqE_U7L275NMuZAqLvJm6rREgHajkfez1ugLTk",
-  "lapee-p4-bootstrap@1.0": "0ER8jwnxByvfp0IXfgI1U_nypaq9x_Y0-NGbB68Ii0Y",
-  "RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ": "0ER8jwnxByvfp0IXfgI1U_nypaq9x_Y0-NGbB68Ii0Y",
+  "lapee-p4-bootstrap@1.0": "mR2aqX5udR7HiOexS3KDbURu59q7sjcJdYOXrxZkk0I",
+  "xC0kc--Ata4MPzJDyKqLSfWGal5OC2NiAtw0y9ZNf7Q": "mR2aqX5udR7HiOexS3KDbURu59q7sjcJdYOXrxZkk0I",
   "pricing-router@1.0": "e1T6L5u7dgj6nMkj3z7pUQjBrMWQdahm5xy5PV5tXOg",
   "UH8LNK2WMtgVBhQ6YCkk5dPyKbp3hHsb9pWCznVfYNA": "e1T6L5u7dgj6nMkj3z7pUQjBrMWQdahm5xy5PV5tXOg",
   "simple-oracle@1.0": "cEwxPCEk3WIYbWmeXOKlYsvLLBUKeB44P5F2y2FftaI",
@@ -101,7 +100,7 @@ export const BUNDLER_SIGNERS = [
   "vZY2XY1RD9HIfWi8ift-1_DnHLDadZMWrufSh-_rKF0",
 ];
 
-export const P4_BOOTSTRAP_DEVICE = "RSQlLsmPZwwk7mxZuwMziGBFTMSTJT9OHm1xlq6MzrQ";
+export const P4_BOOTSTRAP_DEVICE = "xC0kc--Ata4MPzJDyKqLSfWGal5OC2NiAtw0y9ZNf7Q";
 
 // Ouroboros Linux execution on the phone. `andock@1.0` is published, so it
 // loads from Arweave like any other remote device — it is deliberately NOT in
