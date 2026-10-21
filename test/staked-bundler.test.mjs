@@ -31,6 +31,8 @@ test("recommended preset composes v0.11 devices without phone-specific input", (
   assert.ok(!JSON.stringify(config.on).includes("cron@"));
   assert.equal(config["trusted-devices"]["tunnel@1.1"], deployment.tunnel.implementation);
   assert.equal(config.routes[0].node.with, deployment.gateway);
+  assert.equal(config.routes[1].template, "/graphql");
+  assert.equal(config.routes[1].node.prefix, deployment.gateway);
   assert.equal(config["bundler-beneficiary"], beneficiary);
   assert.equal(config.on.start[0].device, deployment.payments.devices["lapee-p4-bootstrap@1.1"].spec);
   assert.equal(config["ao-payment-ledger-path"], "/ledger~node-process@1.0");

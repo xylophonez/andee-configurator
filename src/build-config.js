@@ -293,7 +293,14 @@ function buildStakedBundler(choices) {
       // AndEE's JSON import decoder consumes key="type" annotations before
       // handing the normalized node message to HyperBEAM (andee_bootstrap).
       opts: { "http-client": d.mode === "live-test" ? "hackney" : "httpc", protocol: "http2", "ao-types": 'http-client="atom", protocol="atom"' },
-    } }],
+    } }, {
+      // hb_client_gateway resolves public device metadata through /graphql.
+      // Keep this route when replacing the node's default route list.
+      template: "/graphql", node: { prefix: gateway, opts: {
+        "http-client": d.mode === "live-test" ? "hackney" : "httpc",
+        protocol: "http2", "ao-types": 'http-client="atom", protocol="atom"',
+      } },
+    }],
     "trusted-devices": { ...paid["trusted-devices"], "tunnel@1.1": implementation },
     on: { ...paid.on, start: [
       ...paid.on.start,
