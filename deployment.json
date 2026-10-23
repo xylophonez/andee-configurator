@@ -1,6 +1,39 @@
 {
   "version": 1,
   "mode": "unavailable",
-  "reason": "RC4 payment packages await validation. Smoke is the default tunnel; zone selection remains in the staking flow.",
-  "tunnel": { "peer": "https://smoke.solutions" }
+  "gateway": "https://arweave.net",
+  "tunnel": {
+    "peer": "https://smoke.solutions"
+  },
+  "payments": {
+    "devices": {
+      "ao-payment@1.11": {
+        "implementation": "tnQnnofvRjY5w-n2Kl9D5kzFjaMo6wVdlP5MxwOiRT8",
+        "spec": "GWEZr3hrO4QCrsGWcTXROaeFFyGwkuFDITFfwOLrAKM"
+      },
+      "arweave-byte-pricing@1.11": {
+        "implementation": "TDf5aJzJgt_fHkWS8KtMNtxkwdN5aW-dkmncDLFGm2Y",
+        "spec": "cMx5jD5XLf1mgQqEP1Q79X0dm5NjeZmBeiAfuB46w-Y"
+      },
+      "pricing-router@1.0": {
+        "spec": "iETYyTUYDzvL289qyIpseegjWaR788Pn9I1X5xK4GkA",
+        "implementation": "Qura03s219L4NUdIgwfrijbCP2Iqd9fpvKSZTavphU4"
+      },
+      "simple-oracle@1.0": {
+        "spec": "YZGvdwFCmDUKonMmzm68wB2CYOFWalwyOmuRVwY7TGU",
+        "implementation": "XW9Ou-scm-HQoKVz9P038Mc6MtCVdrPcY01dvStNVLQ"
+      },
+      "lapee-p4-bootstrap@1.12": {
+        "spec": "",
+        "implementation": ""
+      }
+    },
+    "reservationAmount": 10000000000,
+    "signers": [
+      "kaYP9bJtpqON8Kyy3RbqnqdtDBDUsPTQTNUCvZtKiFI",
+      "q5Fcm0NJ34-ss3E1R9dgjGKLLA0B-KYw0J_6U-Pck6o",
+      "aYDOU6kEcE3lK7aA-gTmUKHTbLlQnZZXWpv1_i_Uq1U",
+      "vZY2XY1RD9HIfWi8ift-1_DnHLDadZMWrufSh-_rKF0"
+    ]
+  }
 }

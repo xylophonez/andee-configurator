@@ -2,19 +2,14 @@
   "version": 1,
   "mode": "live-test",
   "tunnel": {
-    "peer": "https://tunnel.mystical.computer",
-    "implementation": "jWqQTVIhqmGGGCX_FcKSKrGBb4h3uNDDlxpPoYSEjdA"
+    "peer": "https://smoke.solutions"
   },
   "gateway": "https://arweave.net",
   "payments": {
     "devices": {
-      "arweave-byte-pricing@1.0": {
+      "arweave-byte-pricing@1.11": {
         "spec": "UjC-_lHIltCrE8I1tGZ9Rtfy7KmtFfOT1ULrQGUDu-0",
         "implementation": "N-vPFtLTNNrdZtKlDvjw8klHYtiTwuCI_CEzEb9RYYM"
-      },
-      "lapee-bundler-gc@1.0": {
-        "spec": "uxLUTO50UxSE7kSosIY9Phu7_8OTK5IhRQe3KeKLoWs",
-        "implementation": "jS_uU4SGRcLzS_d0l7nEaIhgC0egWP-7BomJlNro3Bw"
       },
       "pricing-router@1.0": {
         "spec": "iETYyTUYDzvL289qyIpseegjWaR788Pn9I1X5xK4GkA",
@@ -24,15 +19,18 @@
         "spec": "YZGvdwFCmDUKonMmzm68wB2CYOFWalwyOmuRVwY7TGU",
         "implementation": "XW9Ou-scm-HQoKVz9P038Mc6MtCVdrPcY01dvStNVLQ"
       },
-      "ao-payment@1.2": {
+      "ao-payment@1.11": {
         "spec": "8OWE6FVW_CC8PntVCDaDHDbaFEFdbVV0TLdhqL0qgBI",
         "implementation": "QOsT7PX_BCkp_Na6RW16lIATivuu1tIj-vQCZhu5RVk"
       },
-      "lapee-p4-bootstrap@1.1": {
-        "spec": "i1K_lKGsHWeylkz_cUp-yPT6fqUmj8jQL7LD3iTAKJw",
-        "implementation": "64crhmWSWhhGf37CX9WpcqpvMwZl2vXmsVIU_X9QHwE"
+      "lapee-p4-bootstrap@1.12": {
+        "spec": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "implementation": "ccccccccccccccccccccccccccccccccccccccccccc"
       }
     },
-    "reservationAmount": 10000000000
+    "reservationAmount": 10000000000,
+    "signers": [
+      "kaYP9bJtpqON8Kyy3RbqnqdtDBDUsPTQTNUCvZtKiFI"
+    ]
   }
 }

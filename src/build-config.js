@@ -243,20 +243,33 @@ function buildStakedBundler(choices) {
     beneficiary: id((choices.beneficiary || "").trim(), "Bundler beneficiary"),
     maxItems: choices.maxItems,
   });
+  // The staked profile composes payments without the legacy GC dependency.
+  for (const name of Object.keys(paid["name-resolvers"][0])) {
+    if (!name.startsWith("lapee-bundler-gc@")) continue;
+    delete paid["trusted-devices"][paid["name-resolvers"][0][name]];
+    delete paid["trusted-devices"][name];
+    delete paid["name-resolvers"][0][name];
+  }
+  delete paid["lapee-bundler-completed-item-retention-ms"];
   if (!d.payments) throw new Error("Reviewed payment deployment is required.");
   if (d.payments) {
     if (!Number.isSafeInteger(d.payments.reservationAmount) || d.payments.reservationAmount <= 0) {
       throw new Error("Payment reservation amount must be a positive integer in atomic AO units.");
     }
     paid["ao-payment-reservation-amount"] = d.payments.reservationAmount;
-    for (const name of ["ao-payment@1.2", "arweave-byte-pricing@1.0",
-      "lapee-p4-bootstrap@1.1", "lapee-bundler-gc@1.0",
+    if (!Array.isArray(d.payments.signers) || d.payments.signers.length === 0) {
+      throw new Error("Payment package signers must be configured.");
+    }
+    paid["trusted-device-signers"] = d.payments.signers.map((signer) => id(signer, "Payment package signer"));
+    for (const name of ["ao-payment@1.11", "arweave-byte-pricing@1.11",
+      "lapee-p4-bootstrap@1.12",
       "pricing-router@1.0", "simple-oracle@1.0"]) {
       const pin = d.payments.devices?.[name];
       const spec = id(pin?.spec, `${name} specification`);
       const impl = id(pin?.implementation, `${name} implementation`);
-      const alias = ({ "ao-payment@1.2": "ao-payment@1.0",
-        "lapee-p4-bootstrap@1.1": "lapee-p4-bootstrap@1.0" })[name] ?? name;
+      const alias = ({ "ao-payment@1.11": "ao-payment@1.0",
+        "arweave-byte-pricing@1.11": "arweave-byte-pricing@1.0",
+        "lapee-p4-bootstrap@1.12": "lapee-p4-bootstrap@1.0" })[name] ?? name;
       delete paid["trusted-devices"][paid["name-resolvers"][0][alias]];
       paid["name-resolvers"][0][alias] = spec;
       paid["name-resolvers"][0][name] = spec;

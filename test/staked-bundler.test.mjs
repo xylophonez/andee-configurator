@@ -7,9 +7,9 @@ export const deployment = {
   version: 1, mode: "lab",
   tunnel: { peer: "https://tunnel.example", implementation: "a".repeat(43) },
   gateway: "http://127.0.0.1:36245",
-  payments: { reservationAmount: 10000000000, devices: Object.fromEntries([
-    "ao-payment@1.2", "arweave-byte-pricing@1.0", "lapee-p4-bootstrap@1.1",
-    "lapee-bundler-gc@1.0", "pricing-router@1.0", "simple-oracle@1.0",
+  payments: { reservationAmount: 10000000000, signers: ["s".repeat(43)], devices: Object.fromEntries([
+    "ao-payment@1.11", "arweave-byte-pricing@1.11", "lapee-p4-bootstrap@1.12",
+    "pricing-router@1.0", "simple-oracle@1.0",
   ].map((name, i) => [name, { spec: String(i).repeat(43), implementation: String(i + 1).repeat(43) }])) },
 };
 const beneficiary = "c".repeat(43);
@@ -35,7 +35,7 @@ test("recommended preset composes v0.11 devices without phone-specific input", (
   assert.equal(config.routes[1].template, "/graphql");
   assert.equal(config.routes[1].node.prefix, deployment.gateway);
   assert.equal(config["bundler-beneficiary"], beneficiary);
-  assert.equal(config.on.start[0].device, deployment.payments.devices["lapee-p4-bootstrap@1.1"].spec);
+  assert.equal(config.on.start[0].device, deployment.payments.devices["lapee-p4-bootstrap@1.12"].spec);
   assert.equal(config["ao-payment-ledger-path"], "/ledger~node-process@1.0");
   assert.equal(config["arweave-byte-price"], "dynamic");
   assert.equal(config["bundler-free-byte-limit"], 0);
@@ -44,12 +44,13 @@ test("recommended preset composes v0.11 devices without phone-specific input", (
     assert.equal(config["trusted-devices"][device], pin.implementation);
   }
   assert.ok(config["name-resolvers"][0]["ao-payment@1.0"]);
-  assert.equal(config["name-resolvers"][0]["ao-payment@1.0"], deployment.payments.devices["ao-payment@1.2"].spec);
+  assert.equal(config["name-resolvers"][0]["ao-payment@1.0"], deployment.payments.devices["ao-payment@1.11"].spec);
   assert.equal(config["paid-auto-withdraw"], undefined);
   assert.equal(config.on.request, undefined);
   assert.equal(config["paid-request-hooks"], undefined);
   assert.equal(config["bundler-max-items"], 1000);
-  assert.equal(config["lapee-bundler-completed-item-retention-ms"], 900000);
+  assert.equal(config["lapee-bundler-completed-item-retention-ms"], undefined);
+  assert.ok(!JSON.stringify(config).includes("lapee-bundler-gc"));
   assert.equal(config["ao-payment-ledger"], undefined);
   assert.ok(!JSON.stringify(config).includes("0ER8"), "no obsolete paid-profile bootstrap");
 });
@@ -85,7 +86,7 @@ test("reviewed payment deployment requires a positive reservation and complete p
   for (const reservationAmount of [undefined, 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
     assert.throws(() => build({ ...deployment, payments: { reservationAmount } }), /reservation amount/);
   }
-  assert.throws(() => build({ ...deployment, payments: { reservationAmount: 1000000, devices: {} } }), /specification/);
+  assert.throws(() => build({ ...deployment, payments: { reservationAmount: 1000000, signers: deployment.payments.signers, devices: {} } }), /specification/);
 });
 
 
