@@ -1,5 +1,6 @@
 {
   "version": 1,
   "mode": "unavailable",
-  "reason": "Release device pins and tunnel provider await verification against the combined AndEE candidate."
+  "reason": "RC4 payment packages await validation. Smoke is the default tunnel; zone selection remains in the staking flow.",
+  "tunnel": { "peer": "https://smoke.solutions" }
 }

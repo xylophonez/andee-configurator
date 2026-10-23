@@ -24,12 +24,13 @@ test("recommended preset composes v0.11 devices without phone-specific input", (
   assert.equal(config["allow-rejected-peer-attestation"], false);
   assert.equal(config["zone-allow"], undefined);
   assert.equal(config["zone-ring-address"], undefined);
-  assert.equal(config.on.start[1].path, "start");
-  assert.equal(config.on.start[1].hook, undefined, "URL result must reach subsequent hooks");
+  assert.equal(config.on.start[1].path, "connect");
+  assert.deepEqual(config.on.start[1].hook, { result: "ignore" });
   assert.equal(config.on.start.length, 2);
   assert.ok(!JSON.stringify(config.on).includes("zone@"));
   assert.ok(!JSON.stringify(config.on).includes("cron@"));
-  assert.equal(config["trusted-devices"]["tunnel@1.1"], deployment.tunnel.implementation);
+  assert.equal(config["trusted-devices"]["tunnel@1.1"], undefined);
+  assert.equal(config["trusted-devices"]["tunnel@1.0"], undefined);
   assert.equal(config.routes[0].node.with, deployment.gateway);
   assert.equal(config.routes[1].template, "/graphql");
   assert.equal(config.routes[1].node.prefix, deployment.gateway);
@@ -56,7 +57,7 @@ test("recommended preset composes v0.11 devices without phone-specific input", (
 test("incomplete deployment and mixed legacy layers cannot produce a download", () => {
   assert.throws(() => build(null), /not available/);
   assert.throws(() => build({ ...deployment, mode: "unavailable" }), /disabled/);
-  assert.throws(() => build({ ...deployment, tunnel: { peer: "https://tunnel.example" } }), /pin/);
+  assert.equal(build({ ...deployment, tunnel: { peer: "https://smoke.solutions" } }).on.start[1].peer, "https://smoke.solutions");
   assert.throws(() => build(deployment, ""), /beneficiary/);
   assert.throws(() => build({ ...deployment, payments: undefined }), /payment deployment/);
   assert.throws(() => buildConfig({ layers: ["staked-bundler", "bundler"], deployment }), /on its own/);
@@ -66,7 +67,7 @@ test("live uploads require explicit live-test mode and HTTPS", () => {
   const live = { ...deployment, mode: "live-test", gateway: "https://arweave.net" };
   const config = build(live);
   assert.equal(config.gateway, live.gateway);
-  assert.equal(config.routes[0].node.with, live.gateway);
+  assert.equal(config.routes, undefined);
   assert.equal(config["paid-auto-withdraw"], undefined);
   assert.throws(() => build({ ...live, gateway: "http://arweave.net" }), /HTTPS/);
   assert.throws(() => build({ ...live, gateway: "https://user:pass@arweave.net" }), /HTTPS/);

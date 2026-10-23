@@ -455,9 +455,6 @@ function selectTunnel(id) {
   const tunnel = findTunnel(id);
   if (tunnel) {
     el("tunnel-peer").value = tunnel.peer;
-    // Each router pins its own implementation; carrying the previous router's
-    // pin over is the commonest reason a node is refused registration.
-    el("tunnel-impl").value = tunnel.impl;
     renderTunnelStatus(tunnel);
   } else {
     renderTunnelStatus(null);
@@ -479,13 +476,7 @@ function syncTunnelPickerFromPeer() {
   }
 }
 
-/** Ask the selected router what it currently pins and charges.
- *
- *  The pin matters more than the price. A router repins on its own schedule,
- *  so any value written down here goes stale silently and the node is refused
- *  registration before a device is ever contacted. Reading it from the router
- *  cannot be stale. Left alone if the probe fails -- an unreachable router is
- *  no reason to discard a pin the user may have typed deliberately. */
+/** Refresh the provider's status without changing the operator's device choice. */
 async function refreshSelectedTunnel() {
   const peer = el("tunnel-peer").value.trim();
   if (!/^https?:\/\//i.test(peer)) return;
@@ -494,10 +485,6 @@ async function refreshSelectedTunnel() {
   if (!probe) return;
   const live = asTunnelEntry(probe);
   liveTunnels.set(probe.peer.replace(/\/+$/, ""), live);
-  if (probe.impl && probe.impl !== el("tunnel-impl").value) {
-    el("tunnel-impl").value = probe.impl;
-    render();
-  }
   renderTunnelStatus(live);
   note.textContent = "";
   note.hidden = true;
@@ -730,7 +717,7 @@ async function loadDeployment() {
     // before enabling a download. Zone selection belongs to the staking UI.
     state.deployment = deployment;
     el("deployment-status").textContent = deployment.mode === "unavailable"
-      ? "Release settings await verified device packages and tunnel provider. Downloads are disabled."
+      ? "RC4 payment packages await validation. Downloads are disabled."
       : deployment.mode === "production"
       ? "Staked bundler · real AO payments and Arweave uploads"
       : deployment.mode === "live-test"

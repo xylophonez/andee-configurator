@@ -295,7 +295,7 @@ test("an unreadable pin is reported as unknown, not guessed", async () => {
     async () => {
       const probe = await probeTunnel("https://noping.example");
       assert.equal(probe.impl, null);
-      assert.match(asTunnelEntry(probe).note, /implementation pin unavailable/);
+      assert.doesNotMatch(asTunnelEntry(probe).note, /implementation pin unavailable/);
     },
   );
 });
@@ -479,4 +479,17 @@ test("matching location identities sort above mismatches", async () => {
       assert.equal(tunnels[0].identityMatch, true);
     },
   );
+});
+
+test("RC4 bundled responses and scalar address wrappers need no forced tunnel pin", async () => {
+  await withFetch({
+    "/~tunnel@1.0/status": { body: { "open-registrations": 16 } },
+    "/~meta@1.0/info/on/request": { body: [routerHook] },
+    "/~meta@1.0/info/address": { "ao-result": "body", body: "native-node" },
+  }, async () => {
+    const probe = await probeTunnel("https://smoke.solutions");
+    assert.equal(probe.registrations, 16);
+    assert.equal(probe.address, "native-node");
+    assert.equal(probe.impl, null);
+  });
 });

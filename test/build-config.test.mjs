@@ -4,7 +4,7 @@ import test from "node:test";
 import { buildConfig, normalizePeer, strippedKeys, RESERVED_BOOT_KEYS } from "../src/build-config.js";
 import { ANDOCK_IMPL, ANDOCK_SPEC, TUNNELS, TUNNEL_IMPL, TUNNEL_PEER, ZONES, tunnelByPeer } from "../src/presets.js";
 
-const zone = ZONES[0];
+const zone = { name: "test-zone", peer: "https://zone.example" };
 
 const base = {
   tunnelPeer: TUNNEL_PEER,
@@ -24,14 +24,14 @@ test("plain profile emits no tunnel, zone or bundler keys", () => {
   assert.equal(config["andee-profile-source"], "andee-configurator/plain");
 });
 
-test("tunnel profile pins the trusted implementation and a connect hook", () => {
+test("tunnel profile uses the native preload and a connect hook", () => {
   const config = buildConfig({ ...base, profile: "tunnel" });
   const hook = config.on.start[0];
   assert.equal(hook.device, "tunnel@1.0");
   assert.equal(hook.path, "connect");
   assert.equal(hook.peer, TUNNEL_PEER);
   assert.equal(hook.workers, 8);
-  assert.equal(config["trusted-devices"]["tunnel@1.0"], TUNNEL_IMPL);
+  assert.equal(config["trusted-devices"]?.["tunnel@1.0"], undefined);
 });
 
 test("zone member joins exactly the named zone", () => {
@@ -172,16 +172,10 @@ test("a zone layer may host without forcing public access", () => {
   assert.equal(config["trusted-devices"], undefined);
 });
 
-test("each bootstrap tunnel carries its own implementation pin", () => {
-  // A peer from one router with another router's pin is the commonest
-  // registration failure, so the list must not share a single global pin.
-  assert.ok(TUNNELS.length >= 1, "at least one router must work without discovery");
-  for (const tunnel of TUNNELS) {
-    assert.match(tunnel.peer, /^https:\/\//);
-    assert.ok(tunnel.impl && tunnel.impl.length === 43, `${tunnel.id} needs a 43-char impl id`);
-  }
-  const impls = new Set(TUNNELS.map((t) => t.impl));
-  assert.equal(impls.size, TUNNELS.length, "routers must not share an implementation pin");
+test("the default Smoke tunnel uses the bundled RC4 implementation", () => {
+  assert.equal(TUNNEL_PEER, "https://smoke.solutions");
+  assert.equal(TUNNEL_IMPL, "");
+  assert.equal(TUNNELS[0].impl, "");
 });
 
 test("no router carries a hard-coded description", () => {
@@ -195,11 +189,11 @@ test("no router carries a hard-coded description", () => {
   }
 });
 
-test("selecting a tunnel builds a config pinned to that router", () => {
+test("selecting a tunnel retains the platform implementation by default", () => {
   for (const tunnel of TUNNELS) {
     const config = buildConfig({ layers: ["tunnel"], tunnelPeer: tunnel.peer, tunnelImpl: tunnel.impl });
     assert.equal(config.on.start[0].peer, tunnel.peer);
-    assert.equal(config["trusted-devices"]["tunnel@1.0"], tunnel.impl);
+    assert.equal(config["trusted-devices"]?.["tunnel@1.0"], undefined);
   }
 });
 
@@ -225,4 +219,14 @@ test("peer normalisation keeps explicit schemes and trims trailing slashes", () 
   assert.equal(normalizePeer("a.example"), "https://a.example");
   assert.equal(normalizePeer(""), "");
   assert.equal(normalizePeer(undefined), "");
+});
+
+test("operators can explicitly select a different tunnel implementation", () => {
+  const pin = "X".repeat(43);
+  const config = buildConfig({ layers: ["tunnel"], tunnelPeer: TUNNEL_PEER, tunnelImpl: pin });
+  assert.equal(config["trusted-devices"]["tunnel@1.0"], pin);
+});
+
+test("RC4 does not advertise the retired phone-zone endpoint", () => {
+  assert.deepEqual(ZONES, []);
 });

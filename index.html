@@ -67,7 +67,7 @@
             <li>Enter your payout address below, then download <strong>next.json</strong>.</li>
             <li>In AndEE, choose <strong>LOAD CONFIG</strong> and select that file.</li>
             <li>Tap <strong>APPLY &amp; CLOSE</strong>, then reopen AndEE.</li>
-            <li>Copy your public URL from AndEE. It also appears in the running notification if notifications are allowed.</li>
+            <li>Read your public URL in AndEE’s persistent notification. Allow notifications when prompted.</li>
             <li>Open the staking page, connect your wallet and enter that URL. The staking flow joins your selected zone before staking AO.</li>
           </ol>
           <a id="staking-link" href="https://ao.arweave.net/#/stake/bundle" target="_blank" rel="noopener noreferrer">Open AO staking</a>
@@ -87,7 +87,7 @@
               <div class="custom-select custom-select--field" id="tunnel-picker">
                 <button class="field-select-trigger custom-select__trigger" id="tunnel-trigger" type="button"
                         aria-haspopup="listbox" aria-expanded="false" aria-controls="tunnel-menu">
-                  <span id="tunnel-selected-label">tunnel.permaweb.space</span>
+                  <span id="tunnel-selected-label">smoke.solutions</span>
                   <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 8 3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
                 <div class="custom-select__menu" id="tunnel-menu" hidden>
@@ -122,7 +122,7 @@
             <details class="subsettings">
               <summary>Trusted implementation</summary>
               <div class="subsettings__body">
-                <p>Used to verify the tunnel device. Update it if the tunnel provider has repinned its implementation.</p>
+                <p>Leave blank to use the tunnel bundled with AndEE. Supply a pin only to choose another implementation.</p>
                 <label class="stacked-field">tunnel@1.0
                   <input id="tunnel-impl" type="text" autocomplete="off" spellcheck="false" />
                 </label>

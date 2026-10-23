@@ -226,7 +226,6 @@ function buildStakedBundler(choices) {
       }
     }
   }
-  const implementation = id(d.tunnel?.implementation, "Tunnel implementation pin");
   const gateway = origin(d.gateway, "Upload gateway", d.mode !== "lab");
   const gatewayHost = new URL(gateway).hostname;
   const octets = gatewayHost.split(".").map(Number);
@@ -273,25 +272,19 @@ function buildStakedBundler(choices) {
     "andee-profile-source": "andee-configurator/staked-bundler",
     "allow-rejected-peer-attestation": false,
     gateway,
-    routes: [{ template: "^/arweave", node: {
-      match: "^/arweave", with: gateway,
-      // AndEE's JSON import decoder consumes key="type" annotations before
-      // handing the normalized node message to HyperBEAM (andee_bootstrap).
-      opts: { "http-client": d.mode !== "lab" ? "hackney" : "httpc", protocol: "http2", "ao-types": 'http-client="atom", protocol="atom"' },
-    } }, {
-      // hb_client_gateway resolves public device metadata through /graphql.
-      // Keep this route when replacing the node's default route list.
-      template: "/graphql", node: { prefix: gateway, opts: {
-        "http-client": d.mode !== "lab" ? "hackney" : "httpc",
-        protocol: "http2", "ao-types": 'http-client="atom", protocol="atom"',
-      } },
-    }],
-    "trusted-devices": { ...paid["trusted-devices"], "tunnel@1.1": implementation },
     on: { ...paid.on, start: [
       ...paid.on.start,
-      { device: "tunnel@1.1", path: "start", method: "POST", peer, workers: 8 },
+      { device: "tunnel@1.0", path: "connect", method: "POST", peer, workers: 8, hook: { result: "ignore" } },
     ] },
   };
+  // Fixture routing is explicit. Public compositions inherit RC4's routes.
+  if (d.mode === "lab") {
+    const opts = { "http-client": "httpc", protocol: "http2", "ao-types": 'atom=("http-client" "protocol")' };
+    config.routes = [
+      { template: "^/arweave", node: { match: "^/arweave", with: gateway, opts } },
+      { template: "/graphql", node: { prefix: gateway, opts } },
+    ];
+  }
   if (choices.disableHyperbuddy) config["default-index"] = false;
   return sortKeys(config);
 }

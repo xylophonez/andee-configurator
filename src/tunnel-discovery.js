@@ -75,13 +75,14 @@ async function getJSON(url, timeoutMs, signal) {
   const onOuter = () => abort.abort();
   signal?.addEventListener("abort", onOuter, { once: true });
   try {
-    const res = await fetch(url, {
+    const res = await fetch(`${url}${url.includes("?") ? "&" : "?"}accept-bundle=true`, {
       signal: abort.signal,
       redirect: "error",
       headers: { accept: "application/json" },
     });
     if (!res.ok) return null;
-    return await res.json();
+    const value = await res.json();
+    return value?.body && typeof value.body === "object" ? value.body : value;
   } catch {
     return null;
   } finally {
@@ -218,7 +219,11 @@ async function getText(url, timeoutMs, signal) {
     });
     if (!res.ok) return null;
     const body = (await res.text()).trim();
-    return body || null;
+    if (!body) return null;
+    try {
+      const value = JSON.parse(body);
+      return typeof value === "string" ? value : typeof value?.body === "string" ? value.body : null;
+    } catch { return body; }
   } catch {
     return null;
   } finally {
@@ -382,7 +387,6 @@ export function asTunnelEntry(tunnel) {
   // tells them nothing and invites ignoring it.
   if (tunnel.identityMatch === false) warnings.push("record signed by another address");
   if (tunnel.expired) warnings.push("record expired");
-  if (!tunnel.impl) warnings.push("implementation pin unavailable");
   warnings.push("measurement not verified");
   if (tunnel.free === null) warnings.push("price unavailable");
   else if (!tunnel.free) warnings.push("payment terms unverified");

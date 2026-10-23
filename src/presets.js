@@ -16,24 +16,21 @@
 // about itself -- price, how many nodes trust it, which implementation it pins
 // -- is read from the router when it is probed.
 //
-// A router and the node registering with it must agree on the tunnel@1.0
-// implementation, and routers repin independently, so each entry carries its
-// own `impl` rather than sharing a global pin. The value below is a starting
-// point; probing replaces it with whatever the router currently pins.
+// RC4 supplies tunnel@1.0 in the measured platform preload. Providers do not
+// choose the implementation installed on the phone. Explicit operator pins
+// remain available through the advanced field.
 export const TUNNELS = [
   {
     id: "smoke",
     name: "smoke.solutions",
     peer: "https://smoke.solutions",
-    impl: "SVKRgrshzPceeBdnknJNvR-m2zQ0mFYJvjMx0rSscW0",
+    impl: "",
   },
 ];
 
 export const TUNNEL_PEER = TUNNELS[0].peer;
 
-// Implementation the default router currently trusts. If a tunnel refuses
-// to register, check this first: the router repins it from time to time and a
-// stale value fails before a device is ever contacted.
+// Empty selects the implementation supplied by the RC4 platform preload.
 export const TUNNEL_IMPL = TUNNELS[0].impl;
 
 export function tunnelById(id) {
@@ -47,18 +44,11 @@ export function tunnelByPeer(peer) {
   return TUNNELS.find((tunnel) => tunnel.peer.replace(/\/+$/, "") === wanted);
 }
 
-// Live zone, created 2026-07-31, admission gated on AndEE attestation.
-export const ZONES = [
-  {
-    id: "permawebos",
-    name: "permawebos",
-    peer: "https://qd5thgjy7vkcr6pp2hyvqgardhrc426tjjaobbnetv7ctwrdsqda.smoke.solutions",
-    ring: "isUcx_QUq_XY-Wdxk66D6FMgoyANEdsgV2na2VDZuTk",
-    note: "Template requires measurement-device: andee@1.0, so only genuine AndEE nodes are admitted.",
-  },
-];
+// No AndEE-admitting public zone has been verified for this RC4 composition.
+// Zone selection for staked bundlers belongs to the staking flow.
+export const ZONES = [];
 
-export const TUNNEL_TRUSTED = { "tunnel@1.0": TUNNEL_IMPL };
+export const TUNNEL_TRUSTED = {};
 
 // Remote payment and pricing devices composed with the native v0.11 bundler.
 // The lapee-p4-bootstrap start hook creates its ledger and P4 processors.
