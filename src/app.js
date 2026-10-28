@@ -9,8 +9,10 @@ import {
 import { initTheme } from "./theme.js";
 import { discoverTunnels, probeTunnel, asTunnelEntry } from "./tunnel-discovery.js";
 import "./andee-phone.js";
+import { publicConfigPreview } from "./provider-config.js";
 
 const el = (id) => document.getElementById(id);
+const inAndee = () => window.AndeeBridge?.isAndee?.() === true;
 
 // What each router said about itself when it was last probed, keyed by peer.
 // Built-in entries carry no description of their own, so this is where their
@@ -40,7 +42,7 @@ const findTunnelByPeer = (peer) => {
 };
 
 const state = {
-  layers: ["staked-bundler"],
+  layers: ["full"],
   deployment: null,
   zoneMode: "join",
   advanced: false,
@@ -233,8 +235,8 @@ function renderCapabilities() {
       }
       const selected = state.layers.map((id) => capabilityById(id)).filter(Boolean);
       el("capability-count").textContent = selected.length === 1
-        ? "1 capability"
-        : `${selected.length} capabilities`;
+        ? "Profile"
+        : `Custom · ${selected.length} features`;
       el("capability-summary").textContent = selected.length
         ? selected.map((capability) => capability.name).join(" · ")
         : "Local node only";
@@ -254,9 +256,9 @@ function renderCapabilities() {
     const option = event.target.closest(".custom-select__option");
     if (!option) return;
     const id = option.dataset.value;
-    state.layers = id === "staked-bundler" ? [id] : state.layers.includes(id)
+    state.layers = ["full", "staked-bundler"].includes(id) ? [id] : state.layers.includes(id)
       ? state.layers.filter((layer) => layer !== id)
-      : [...state.layers.filter((layer) => layer !== "staked-bundler"), id];
+      : [...state.layers.filter((layer) => !["full", "staked-bundler"].includes(layer)), id];
     refreshLayerUI();
   });
   root.addEventListener("keydown", (event) => {
@@ -646,11 +648,15 @@ function bindEvents() {
   for (const id of [
     "tunnel-peer", "tunnel-workers", "tunnel-impl",
     "zone-name", "zone-peer",
-    "beneficiary", "max-items", "disable-hyperbuddy",
+    "beneficiary", "max-items", "disable-hyperbuddy", "agent-owner",
+    "inference-provider", "inference-key", "inference-model",
   ]) {
     el(id).addEventListener("input", (event) => {
       syncNumberStepper(event.target);
       if (event.target.id === "tunnel-peer") syncTunnelPickerFromPeer();
+      if (event.target.id === "inference-provider") {
+        el("inference-key-fields").hidden = !event.target.value;
+      }
       render();
     });
   }
@@ -681,10 +687,21 @@ function bindEvents() {
 
 function applyLayers() {
   const active = new Set(state.layers);
-  el("staked-bundler-card").hidden = !active.has("staked-bundler");
+  const full = active.has("full");
+  const preset = full || active.has("staked-bundler");
+  el("agent-description").textContent = "Ouroboros and Intelligence Pool are included. Connect ChatGPT in the extension after AndEE starts."
+    + (full ? " Bundling payments go to the wallet below." : "");
+  el("custom-layers").hidden = preset;
+  el("bundler-card").open = !full;
+  el("agent-card").hidden = !full && !active.has("ouroboros");
+  el("staked-bundler-card").hidden = !full && !active.has("staked-bundler");
   el("tunnel-card").hidden = !active.has("tunnel");
   el("zone-card").hidden = !active.has("zone");
-  el("bundler-card").hidden = !active.has("bundler") && !active.has("staked-bundler");
+  el("bundler-card").hidden = !full && !active.has("bundler") && !active.has("staked-bundler");
+  el("beneficiary").placeholder = full ? "Same as your extension wallet" : "43-character Arweave address";
+  el("beneficiary-help").textContent = full
+    ? "Leave blank to receive bundling payments at your extension wallet, or enter another Arweave address you control."
+    : "Bundling payments go to this address. Enter an address you control and check it before saving.";
   el("max-items-field").hidden = false;
   el("zone-hint").textContent = state.zoneMode === "host"
     ? "This node may create a zone. Others join it by attesting; a zone reachable only on localhost can be joined by nothing, so keep the tunnel on."
@@ -703,8 +720,14 @@ function currentChoices() {
     zoneName: el("zone-name").value,
     zonePeer: el("zone-peer").value,
     beneficiary: el("beneficiary").value,
+    agentOwner: el("agent-owner").value,
+    inference: {
+      provider: el("inference-provider").value,
+      apiKey: el("inference-key").value,
+      model: el("inference-model").value,
+    },
     maxItems: el("max-items").value,
-    disableHyperbuddy: el("disable-hyperbuddy").checked,
+    disableHyperbuddy: !el("disable-hyperbuddy").checked,
   };
 }
 
@@ -717,12 +740,12 @@ async function loadDeployment() {
     // before enabling a download. Zone selection belongs to the staking UI.
     state.deployment = deployment;
     el("deployment-status").textContent = deployment.mode === "unavailable"
-      ? "RC4 payment packages await validation. Downloads are disabled."
+      ? "This package release is not available yet. Configuration can be saved once it is ready."
       : deployment.mode === "production"
       ? "Staked bundler · real AO payments and Arweave uploads"
       : deployment.mode === "live-test"
       ? "Live upload test · real AO payments and Arweave uploads"
-      : "Test staking and uploads · real AO payments may apply";
+      : "Local test setup";
   } catch {
     state.deployment = null;
     el("deployment-status").textContent = "Deployment settings are unavailable. Download requires a valid deployment and your payout address.";
@@ -731,6 +754,7 @@ async function loadDeployment() {
 }
 
 let lastConfigText = "";
+let lastPreviewText = "";
 
 function render() {
   const error = el("build-error");
@@ -743,18 +767,21 @@ function render() {
       throw new Error(`Config contains reserved keys: ${stripped.join(", ")}`);
     }
     lastConfigText = `${JSON.stringify(config, null, 2)}\n`;
-    el("preview").textContent = lastConfigText;
+    lastPreviewText = `${JSON.stringify(publicConfigPreview(config), null, 2)}\n`;
+    el("preview").textContent = lastPreviewText;
     error.hidden = true;
     beneficiaryError.hidden = true;
     el("download").disabled = false;
     el("copy-inline").disabled = false;
   } catch (exc) {
     lastConfigText = "";
+    lastPreviewText = "";
     el("preview").textContent = "";
     const message = exc instanceof Error ? exc.message : String(exc);
     if (message.includes("beneficiary")) {
       beneficiaryError.hidden = false;
-      error.hidden = true;
+      error.textContent = "Check your payout address in Bundler settings.";
+      error.hidden = false;
     } else {
       error.textContent = message;
       error.hidden = false;
@@ -767,6 +794,14 @@ function render() {
 
 function download() {
   if (!lastConfigText) return;
+  if (inAndee()) {
+    const result = window.AndeeBridge.stageNextBootConfig(lastConfigText);
+    if (result !== "staged") {
+      el("build-error").textContent = "The configuration could not be saved. Check its fields and try again.";
+      el("build-error").hidden = false;
+    }
+    return;
+  }
   const blob = new Blob([lastConfigText], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -781,7 +816,7 @@ function download() {
 async function copy() {
   if (!lastConfigText) return;
   try {
-    await navigator.clipboard.writeText(lastConfigText);
+    await navigator.clipboard.writeText(lastPreviewText);
     const inlineButton = el("copy-inline");
     inlineButton.classList.add("is-copied");
     inlineButton.setAttribute("aria-label", "Copied");
@@ -802,3 +837,7 @@ async function copy() {
 
 initTheme();
 boot();
+if (inAndee()) {
+  el("download-label").textContent = "Apply to AndEE";
+  el("node-detail").textContent = "Choose your setup, apply it, then reopen AndEE.";
+}

@@ -2,9 +2,23 @@
 
 Operator-config builder for a **PermawebOS Node** running on Android.
 
-Pick capabilities, fill in their fields, download `next.json`, and import it
-with AndEE's LOAD CONFIG picker. The Configurator opens in a separate browser;
-it does not connect directly to the phone or upload the generated config.
+Open **Configure** in AndEE, choose a profile, and select **Apply to AndEE**.
+The existing next-boot store stages it; return to **Apply & close**, then reopen
+AndEE. In a standalone browser the same action downloads `next.json` for the
+**Load JSON** picker. Nothing is uploaded by this form.
+
+**Full** is first and selected by default. It combines Ouroboros, agent,
+inference, Intelligence Pool, Ouroboros Space and Weavemail with the existing
+GC-free staked-bundler and native tunnel composition. Enter the extension's
+public Arweave wallet address once; this owns the agent and subscription, and
+is also the default payout address. Bundler settings allow a separate payout.
+ChatGPT sign-in happens in the extension after boot; there is no callback URL
+field or boot-time login. Optional API-key providers use private configuration;
+preview and clipboard redact the key, while download/apply include it.
+
+The checked-in deployment remains **unavailable** until the reviewed packages
+are published and verified. Empty agent/bootstrap pins deliberately disable
+saving Full; local review manifests are not production releases.
 
 ## Run
 
@@ -18,14 +32,14 @@ No build step. It is plain ES modules and one stylesheet.
 
 ## Staked bundler candidate
 
-**Staked bundler** is the first capability and the default selection. It composes
+**Staked bundler** is the second profile, for a setup without the agent. It composes
 paid bundling and tunnel startup. Enter your payout address before downloading;
 it may differ from the wallet used to stake. There is no deployment-supplied
 payout fallback. Selecting another capability replaces this preset.
 
 The hosting deployment supplies `deployment.json` beside `index.html`, with
-`version: 1`, an explicit `lab` or `live-test` mode, a tunnel HTTPS peer and
-implementation pin, an upload gateway, and reviewed payment device pins and
+`version: 1`, a release mode, a tunnel HTTPS peer, an upload gateway,
+`agent.devices` specification/implementation pins, reviewed payment pins and
 reservation amount. Missing or invalid settings disable the download. Production
 pricing, funding and device publication remain separate release gates.
 
@@ -44,7 +58,7 @@ plus the native zone device selected by the staking UI. Tunnel startup derives
 the URL from the selected peer and node identity. The configurator does not
 prove reachability, admission, staking, routing eligibility or AR funding.
 
-Download the config, select it with AndEE's **LOAD CONFIG**, choose **APPLY &
+Apply in AndEE, or import the download with **LOAD JSON**. Choose **APPLY &
 CLOSE**, then reopen AndEE. Copy the public URL from AndEE, open
 [AO bundler staking](https://ao.arweave.net/#/stake/bundle), connect your staking
 wallet and follow its zone/join/stake flow. Allow Android notifications to see

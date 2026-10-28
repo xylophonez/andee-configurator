@@ -35,5 +35,33 @@
       "aYDOU6kEcE3lK7aA-gTmUKHTbLlQnZZXWpv1_i_Uq1U",
       "vZY2XY1RD9HIfWi8ift-1_DnHLDadZMWrufSh-_rKF0"
     ]
+  },
+  "agent": {
+    "devices": {
+      "agent@1.0": {
+        "spec": "",
+        "implementation": ""
+      },
+      "inference@1.0": {
+        "spec": "",
+        "implementation": ""
+      },
+      "intelligence-pool@1.0": {
+        "spec": "",
+        "implementation": ""
+      },
+      "ouroboros@1.0": {
+        "spec": "",
+        "implementation": ""
+      },
+      "ouroboros-space@1.0": {
+        "spec": "",
+        "implementation": ""
+      },
+      "weavemail@1.0": {
+        "spec": "",
+        "implementation": ""
+      }
+    }
   }
 }

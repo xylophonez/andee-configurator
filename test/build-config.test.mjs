@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildConfig, normalizePeer, strippedKeys, RESERVED_BOOT_KEYS } from "../src/build-config.js";
-import { ANDOCK_IMPL, ANDOCK_SPEC, TUNNELS, TUNNEL_IMPL, TUNNEL_PEER, ZONES, tunnelByPeer } from "../src/presets.js";
+import { TUNNELS, TUNNEL_IMPL, TUNNEL_PEER, ZONES, tunnelByPeer } from "../src/presets.js";
+
+import { deployment, owner } from "./fixtures/full-deployment.mjs";
 
 const zone = { name: "test-zone", peer: "https://zone.example" };
 
 const base = {
+  deployment, agentOwner: owner,
   tunnelPeer: TUNNEL_PEER,
   tunnelWorkers: "8",
   tunnelImpl: TUNNEL_IMPL,
@@ -114,11 +117,12 @@ test("the reserved key list matches the node's own", () => {
   assert.ok(RESERVED_BOOT_KEYS.includes("preloaded-store"));
 });
 
-test("ouroboros profile pins the published andock device by spec and implementation", () => {
+test("ouroboros loads its agent dependencies and uses the platform andock", () => {
   const config = buildConfig({ ...base, profile: "ouroboros" });
-  assert.equal(config["name-resolvers"][0]["andock@1.0"], ANDOCK_SPEC);
-  assert.equal(config["trusted-devices"]["andock@1.0"], ANDOCK_IMPL);
-  assert.equal(config["trusted-devices"][ANDOCK_SPEC], ANDOCK_IMPL);
+  assert.equal(config["name-resolvers"][0]["ouroboros@1.0"], deployment.agent.devices["ouroboros@1.0"].spec);
+  assert.equal(config["trusted-devices"]["andock@1.0"], undefined);
+  assert.equal(config["ouroboros-execution-device"], "andock@1.0");
+  assert.equal(config["trusted-devices"]["intelligence-pool@1.0"], deployment.agent.devices["intelligence-pool@1.0"].implementation);
   assert.equal(config["lapee-profile"], "ouroboros-tunnel");
   assert.equal(config.on.start[0].device, "tunnel@1.0");
 });
@@ -133,11 +137,12 @@ test("ouroboros and bundler combine without duplicating a resolver", () => {
   const config = buildConfig({ ...base, profile: "ouroboros-bundler" });
   const resolvers = config["name-resolvers"];
   const pins = resolvers[0];
-  assert.equal(pins["andock@1.0"], ANDOCK_SPEC);
+  assert.equal(pins["ouroboros@1.0"], deployment.agent.devices["ouroboros@1.0"].spec);
   assert.equal(pins["pricing-router@1.0"], "UH8LNK2WMtgVBhQ6YCkk5dPyKbp3hHsb9pWCznVfYNA");
   const devices = resolvers.filter((r) => r && r.device).map((r) => r.device);
   assert.deepEqual(devices, [...new Set(devices)], "a device resolver was emitted twice");
-  assert.equal(config["trusted-devices"]["andock@1.0"], ANDOCK_IMPL);
+  assert.equal(config["trusted-devices"]["andock@1.0"], undefined);
+  assert.equal(config["ouroboros-execution-device"], "andock@1.0");
   assert.ok(config["trusted-devices"]["lapee-p4-bootstrap@1.0"]);
   // The bundler owns lapee-profile when both are selected.
   assert.equal(config["lapee-profile"], "aopayment-bundler-p4-paid-remote");
@@ -152,7 +157,8 @@ test("capabilities are additive instead of exclusive", () => {
   assert.ok(config.on.start.some((hook) => hook.device === "tunnel@1.0"));
   assert.ok(config.on.start.some((hook) => hook.device === "xC0kc--Ata4MPzJDyKqLSfWGal5OC2NiAtw0y9ZNf7Q"));
   assert.deepEqual(config["zone-allow"], { [zone.name]: zone.peer });
-  assert.equal(config["trusted-devices"]["andock@1.0"], ANDOCK_IMPL);
+  assert.equal(config["trusted-devices"]["andock@1.0"], undefined);
+  assert.equal(config["ouroboros-execution-device"], "andock@1.0");
   assert.equal(config["bundler-beneficiary"], base.beneficiary);
   assert.equal(config["andee-profile-source"], "andee-configurator/tunnel+zone+ouroboros+bundler");
 });

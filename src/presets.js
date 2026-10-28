@@ -92,37 +92,27 @@ export const BUNDLER_SIGNERS = [
 
 export const P4_BOOTSTRAP_DEVICE = "xC0kc--Ata4MPzJDyKqLSfWGal5OC2NiAtw0y9ZNf7Q";
 
-// Ouroboros Linux execution on the phone. `andock@1.0` is published, so it
-// loads from Arweave like any other remote device — it is deliberately NOT in
-// the build (`stage-android-devices.sh` stages only devices/common and
-// devices/android). The published archive already carries renamed copies of
-// lib_ouroboros_execution/_tools/_utils, so there is no cross-repo dependency
-// to resolve at config time.
-export const ANDOCK_SPEC = "Zi9e9KreDY3o2E4j2jZ8l2MaCq6pi9H1vNWvTJBJv1k";
-export const ANDOCK_IMPL = "bEIh5SpEZGgL7QRjV7lxktIjVB8KejkRvtEBu0Fox2Y";
-
-export const OUROBOROS_NAME_RESOLVERS = [
-  { "andock@1.0": ANDOCK_SPEC },
-  { device: "arweave@2.9" },
-  { device: "b32-name@1.0" },
+// AndEE RC8 already supplies andock@1.0. Application device pins come from
+// the same reviewed deployment manifest as the paid-bundler package set.
+export const AGENT_DEVICES = [
+  "agent@1.0", "inference@1.0", "intelligence-pool@1.0",
+  "ouroboros@1.0", "ouroboros-space@1.0", "weavemail@1.0",
 ];
-
-export const OUROBOROS_TRUSTED = {
-  "andock@1.0": ANDOCK_IMPL,
-  [ANDOCK_SPEC]: ANDOCK_IMPL,
-};
-
-// Same publisher set as the bundler devices; andock is signed by it too.
-export const OUROBOROS_SIGNERS = BUNDLER_SIGNERS;
 
 // Independent configuration layers shown by the configurator. Unlike the
 // legacy role presets below, these are deliberately additive: operators can
 // enable any combination and control their application order.
 export const CAPABILITIES = [
   {
+    id: "full",
+    name: "Full",
+    blurb: "Your agent, ChatGPT connection, public URL and staked bundler, configured together.",
+    adds: ["Ouroboros and Intelligence Pool", "public access", "paid bundling and staking setup"],
+  },
+  {
     id: "staked-bundler",
     name: "Staked bundler",
-    blurb: "Paid bundling and a public URL. Join a zone on the AO staking page. Recommended.",
+    blurb: "Paid bundling and a public URL. Join a zone on the AO staking page.",
     adds: ["tunnel startup and public URL", "paid native v0.11 bundler", "your payout address"],
   },
   {
@@ -146,12 +136,18 @@ export const CAPABILITIES = [
   {
     id: "ouroboros",
     name: "Ouroboros",
-    blurb: "Serve Linux execution tools through ~andock@1.0.",
-    adds: ["andock@1.0 resolver and trust pins", "Ouroboros execution profile"],
+    blurb: "Run your agent with Intelligence Pool and the tools built into AndEE.",
+    adds: ["Ouroboros, agent, inference and messaging devices", "Intelligence Pool and your wallet binding"],
   },
 ];
 
 export const PROFILES = [
+  {
+    id: "full",
+    name: "Full",
+    blurb: "Ouroboros, Intelligence Pool, public access and staked bundling.",
+    full: true,
+  },
   {
     id: "plain",
     name: "Plain node",
@@ -196,8 +192,7 @@ export const PROFILES = [
     id: "ouroboros",
     name: "Ouroboros node",
     blurb:
-      "Linux execution behind a tunnel. Serves the seven Ouroboros tools at ~andock@1.0. " +
-      "Needs an APK whose AndeeExecutionManager is started, or every call fails closed with 503.",
+      "Your agent and ChatGPT connection behind a public URL.",
     tunnel: true,
     ouroboros: true,
   },

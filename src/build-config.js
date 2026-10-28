@@ -7,13 +7,11 @@ import {
   BUNDLER_SIGNERS,
   BUNDLER_TRUSTED,
   CAPABILITIES,
-  OUROBOROS_NAME_RESOLVERS,
-  OUROBOROS_SIGNERS,
-  OUROBOROS_TRUSTED,
   P4_BOOTSTRAP_DEVICE,
   PROFILES,
   TUNNEL_TRUSTED,
 } from "./presets.js";
+import { agentConfig } from "./agent-config.js";
 
 export const RESERVED_BOOT_KEYS = [
   "access-remote-cache-for-client",
@@ -55,6 +53,17 @@ export function capabilityById(id) {
  * @param {boolean} [choices.disableHyperbuddy]
  */
 export function buildConfig(choices) {
+  if (choices.layers?.includes("full") || choices.profile === "full") {
+    if (choices.layers?.some((layer) => layer !== "full")) {
+      throw new Error("Full already includes the agent, public access and staked bundler. Select it on its own.");
+    }
+    agentConfig(choices);
+    const paid = buildStakedBundler({
+      ...choices,
+      beneficiary: String(choices.beneficiary || "").trim() || choices.agentOwner,
+    });
+    return sortKeys({ ...withAgent(paid, choices), "andee-profile-source": "andee-configurator/full" });
+  }
   if (choices.layers?.includes("staked-bundler") || choices.profile === "staked-bundler") {
     if (choices.layers?.some((layer) => layer !== "staked-bundler")) {
       throw new Error("Staked bundler already includes its required capabilities. Select it on its own.");
@@ -104,12 +113,6 @@ export function buildConfig(choices) {
     }
 
     if (layer === "ouroboros") {
-      // andock@1.0 is not in the build; these two pins are the whole mechanism.
-      // Execution still needs the app to serve ANDEE_EXECUTION_SOCKET — without
-      // it the device loads and answers, but every tool call fails closed on 503.
-      Object.assign(trusted, OUROBOROS_TRUSTED);
-      nameResolverLists.push(OUROBOROS_NAME_RESOLVERS);
-      config["trusted-device-signers"] = OUROBOROS_SIGNERS;
       config["lapee-allow-request-trusted-ca"] = true;
       config["http-client-prefer-ipv4"] = true;
       if (!activeLayers.has("bundler")) config["lapee-profile"] = "ouroboros-tunnel";
@@ -188,7 +191,17 @@ export function buildConfig(choices) {
   }
 
   config["andee-profile-source"] = `andee-configurator/${layers.join("+") || "plain"}`;
-  return sortKeys(config);
+  return sortKeys(activeLayers.has("ouroboros") ? withAgent(config, choices) : config);
+}
+
+function withAgent(config, choices) {
+  const agent = agentConfig(choices);
+  return {
+    ...config,
+    ...agent,
+    "trusted-devices": { ...config["trusted-devices"], ...agent["trusted-devices"] },
+    "name-resolvers": mergeNameResolvers([config["name-resolvers"] || [], agent["name-resolvers"]]),
+  };
 }
 
 /** Compose paid bundling; ao-site selects and joins the zone during staking. */

@@ -16,7 +16,7 @@ const beneficiary = "c".repeat(43);
 const build = (d = deployment, payout = beneficiary) => buildConfig({ layers: ["staked-bundler"], deployment: d, beneficiary: payout });
 
 test("recommended preset composes v0.11 devices without phone-specific input", () => {
-  assert.equal(CAPABILITIES[0].id, "staked-bundler");
+  assert.ok(CAPABILITIES.some((capability) => capability.id === "staked-bundler"));
   const config = build();
   assert.deepEqual(strippedKeys(config), []);
   assert.equal(config["zone-self-url"], undefined);

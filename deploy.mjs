@@ -23,6 +23,8 @@ const FILES = [
   ['styles.css', 'text/css'],
   ['src/app.js', 'text/javascript'],
   ['src/build-config.js', 'text/javascript'],
+  ['src/agent-config.js', 'text/javascript'],
+  ['src/provider-config.js', 'text/javascript'],
   ['src/presets.js', 'text/javascript'],
   ['src/theme.js', 'text/javascript'],
   ['src/andee-phone.js', 'text/javascript'],
@@ -47,6 +49,7 @@ if (['zone', 'beneficiary', 'stakingUrl'].some(key => key in deployment)) {
 }
 // A synthetic address validates composition only; it is never published as a payout.
 buildConfig({ layers: ['staked-bundler'], deployment, beneficiary: 'a'.repeat(43) });
+buildConfig({ layers: ['full'], deployment, agentOwner: 'c'.repeat(43) });
 const receipt = { files: {}, manifestId: null };
 const record = () => {
   if (process.env.ANDEE_DEPLOY_RECEIPT) writeFileSync(process.env.ANDEE_DEPLOY_RECEIPT, JSON.stringify(receipt, null, 2) + '\n');

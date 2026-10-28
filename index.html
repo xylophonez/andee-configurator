@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#1A1815" />
     <meta name="color-scheme" content="dark light" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'" />
     <title>Configure AndEE</title>
     <script>
       (() => {
@@ -28,8 +29,8 @@
         <section class="role-panel" aria-labelledby="capabilities-heading">
           <div class="section-heading">
             <div>
-              <h2 id="capabilities-heading">Capabilities</h2>
-              <p>Add features to this node. Selected layers combine instead of replacing one another.</p>
+              <h2 id="capabilities-heading">Profile</h2>
+              <p>Your agent, public access and paid bundling, together.</p>
             </div>
           </div>
           <div class="custom-select" id="capability-picker">
@@ -39,14 +40,15 @@
                 <svg viewBox="0 0 24 24" fill="none"><path d="m5 7 7-3.5L19 7l-7 3.5L5 7Zm0 5 7 3.5 7-3.5M5 17l7 3.5 7-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </span>
               <span class="select-row__copy">
-                <span class="select-row__label" id="capability-count">1 capability</span>
-                <span class="select-row__hint" id="capability-summary">Staked bundler</span>
+                <span class="select-row__label" id="capability-count">Profile</span>
+                <span class="select-row__hint" id="capability-summary">Full</span>
               </span>
               <svg class="select-row__chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div class="custom-select__menu custom-select__menu--roles" id="capability-menu"
                  role="listbox" aria-label="Node capabilities" aria-multiselectable="true" hidden></div>
           </div>
+          <div id="custom-layers" hidden>
           <div class="layer-stack-heading">
             <span>Applied layers</span>
             <button id="advanced-toggle" class="advanced-toggle" type="button" aria-pressed="false">
@@ -55,24 +57,52 @@
             </button>
           </div>
           <ol class="layer-stack" id="layer-stack" aria-label="Applied capability order" aria-live="polite"></ol>
+          </div>
         </section>
 
-        <section class="settings-group" id="staked-bundler-card" aria-labelledby="staked-heading">
+        <section class="settings-group" id="agent-card" aria-labelledby="agent-heading">
           <div class="section-heading"><div>
-            <h2 id="staked-heading">Set up your bundler</h2>
-            <p>Configure paid bundling and public access here. Choose and join a zone on the AO staking page.</p>
+            <h2 id="agent-heading">Your agent</h2>
+            <p id="agent-description">Ouroboros and Intelligence Pool are included. Connect ChatGPT in the extension after AndEE starts. Bundling payments go to the wallet below.</p>
           </div></div>
-          <p id="deployment-status" class="inline-note" role="status">Loading deployment settings…</p>
-          <ol class="onboarding-steps">
-            <li>Enter your payout address below, then download <strong>next.json</strong>.</li>
-            <li>In AndEE, choose <strong>LOAD CONFIG</strong> and select that file.</li>
-            <li>Tap <strong>APPLY &amp; CLOSE</strong>, then reopen AndEE.</li>
-            <li>Read your public URL in AndEE’s persistent notification. Allow notifications when prompted.</li>
-            <li>Open the staking page, connect your wallet and enter that URL. The staking flow joins your selected zone before staking AO.</li>
-          </ol>
-          <a id="staking-link" href="https://ao.arweave.net/#/stake/bundle" target="_blank" rel="noopener noreferrer">Open AO staking</a>
-          <p class="inline-note">Zone admission still checks your device. A public URL alone does not mean it has been accepted.</p>
+          <div class="field-list">
+            <label class="stacked-field">Extension wallet address
+              <input id="agent-owner" type="text" autocomplete="off" spellcheck="false" placeholder="Your 43-character Arweave address" aria-describedby="agent-owner-help" />
+            </label>
+            <p id="agent-owner-help" class="inline-note">Copy the public address from your extension's unlocked wallet. This binds the agent and ChatGPT connection to you.</p>
+            <details class="subsettings">
+              <summary>Use an API key instead</summary>
+              <div class="subsettings__body">
+                <label class="stacked-field">AI provider
+                  <select id="inference-provider">
+                    <option value="">Connect ChatGPT in the extension</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="openrouter">OpenRouter</option>
+                    <option value="anthropic">Anthropic</option>
+                  </select>
+                </label>
+                <div id="inference-key-fields" hidden>
+                  <label class="stacked-field">API key
+                    <input id="inference-key" type="password" autocomplete="new-password" spellcheck="false" />
+                  </label>
+                  <label class="stacked-field">Model ID
+                    <input id="inference-model" type="text" autocomplete="off" spellcheck="false" />
+                  </label>
+                  <p class="inline-note">The key stays in your private configuration. Previews and clipboard copies hide it.</p>
+                </div>
+              </div>
+            </details>
+          </div>
         </section>
+
+        <details class="subsettings" id="staked-bundler-card">
+          <summary>Staking and public access</summary>
+          <div class="subsettings__body">
+            <p id="deployment-status" role="status">Loading deployment settings…</p>
+            <p>After applying, tap <strong>Apply &amp; close</strong> and reopen AndEE. Use its public URL in the extension, then choose and join a zone on the staking page.</p>
+            <a id="staking-link" href="https://ao.arweave.net/#/stake/bundle" target="_blank" rel="noopener noreferrer">Open AO staking</a>
+          </div>
+        </details>
 
         <section class="settings-group" id="tunnel-card" aria-labelledby="tunnel-heading" hidden>
           <div class="section-heading">
@@ -168,13 +198,9 @@
           </div>
         </section>
 
-        <section class="settings-group" id="bundler-card" aria-labelledby="bundler-heading" hidden>
-          <div class="section-heading">
-            <div>
-              <h2 id="bundler-heading">Bundler</h2>
-              <p>Accept and settle paid items through <code>~bundler@1.0</code>.</p>
-            </div>
-          </div>
+        <details class="subsettings" id="bundler-card" hidden>
+          <summary>Bundler settings</summary>
+          <div class="subsettings__body">
           <div class="field-list">
             <label class="stacked-field">Your payout address
               <input id="beneficiary" type="text" autocomplete="off" spellcheck="false" placeholder="43-character Arweave address" aria-describedby="beneficiary-help beneficiary-error" />
@@ -191,24 +217,22 @@
               </span>
             </div>
           </div>
-        </section>
-
-        <section class="settings-group" aria-labelledby="interface-heading">
-          <div class="section-heading">
-            <div>
-              <h2 id="interface-heading">Interface</h2>
-              <p>Control what the node serves locally.</p>
-            </div>
           </div>
+        </details>
+
+        <details class="subsettings">
+          <summary>Node interface</summary>
+          <div class="subsettings__body">
           <label class="switch-row">
             <span class="switch-row__copy">
               <span>Hyperbuddy UI</span>
               <small>Serve the node interface at its default address.</small>
             </span>
-            <input id="disable-hyperbuddy" type="checkbox" />
+            <input id="disable-hyperbuddy" type="checkbox" checked />
             <span class="switch" aria-hidden="true"></span>
           </label>
-        </section>
+          </div>
+        </details>
 
         <section class="config-panel" aria-labelledby="config-heading">
           <details>
@@ -224,18 +248,18 @@
               <svg class="config-panel__chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </summary>
             <div class="config-panel__body">
-              <p class="error" id="build-error" hidden></p>
               <pre id="preview" class="preview" role="button" tabindex="0" aria-label="Copy generated configuration" aria-live="polite" title="Copy JSON"></pre>
             </div>
           </details>
         </section>
 
         <div class="action-area">
+          <p class="error" id="build-error" role="status" hidden></p>
           <button id="download" type="button" class="button button--primary">
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <path d="M10 3.5v8m0 0 3-3m-3 3-3-3M4.5 14v1.5h11V14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-            <span>Download next.json</span>
+            <span id="download-label">Download configuration</span>
           </button>
           <p class="privacy-note">Generated on this device. Nothing is uploaded.</p>
         </div>
