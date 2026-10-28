@@ -689,8 +689,11 @@ function applyLayers() {
   const active = new Set(state.layers);
   const full = active.has("full");
   const preset = full || active.has("staked-bundler");
-  el("agent-description").textContent = "Ouroboros and Intelligence Pool are included. Connect ChatGPT in the extension after AndEE starts."
-    + (full ? " Bundling payments go to the wallet below." : "");
+  el("profile-description").textContent = full
+    ? "Full includes everything needed for your agent and ChatGPT connection."
+    : "Choose the capabilities you want this AndEE to provide.";
+  el("agent-description").textContent = "Ouroboros, Intelligence Pool, inference, messaging and AndEE's execution tools are configured together.";
+  el("setup-guide").hidden = !full && !active.has("ouroboros");
   el("custom-layers").hidden = preset;
   el("bundler-card").open = !full;
   el("agent-card").hidden = !full && !active.has("ouroboros");
@@ -759,6 +762,11 @@ let lastPreviewText = "";
 function render() {
   const error = el("build-error");
   const beneficiaryError = el("beneficiary-error");
+  const needsOwner = state.layers.includes("full") || state.layers.includes("ouroboros");
+  const ownerMissing = needsOwner && !el("agent-owner").value.trim();
+  el("apply-hint").textContent = ownerMissing
+    ? "Paste your extension wallet address to continue."
+    : inAndee() ? "Next: Apply & close, then reopen AndEE." : "Next: Load JSON in AndEE, then Apply & close and reopen.";
   try {
     const config = buildConfig(currentChoices());
     const stripped = strippedKeys(config);
@@ -784,7 +792,8 @@ function render() {
       error.hidden = false;
     } else {
       error.textContent = message;
-      error.hidden = false;
+      // An untouched required field is guidance, not a failed setup attempt.
+      error.hidden = ownerMissing && message.includes("wallet address");
       beneficiaryError.hidden = true;
     }
     el("download").disabled = true;
@@ -839,5 +848,8 @@ initTheme();
 boot();
 if (inAndee()) {
   el("download-label").textContent = "Apply to AndEE";
-  el("node-detail").textContent = "Choose your setup, apply it, then reopen AndEE.";
+  el("apply-step").replaceChildren();
+  const title = document.createElement("strong");
+  title.textContent = "Apply and restart. ";
+  el("apply-step").append(title, "Tap Apply to AndEE, then Apply & close and reopen the app.");
 }

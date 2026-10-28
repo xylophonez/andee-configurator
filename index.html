@@ -22,15 +22,23 @@
           <andee-phone class="node-phone" status="preview" aria-label="Rotating wireframe AndEE phone"></andee-phone>
           <div class="node-hero__copy" aria-live="polite">
             <h2 id="node-title">Configure your AndEE</h2>
-            <p id="node-detail">Save your config, load it in AndEE, then restart to apply it.</p>
+            <p id="node-detail">Set up your phone, then connect ChatGPT in the extension.</p>
           </div>
+        </section>
+
+        <section class="setup-guide" id="setup-guide" aria-label="Connect your agent in three steps">
+          <ol class="onboarding-steps">
+            <li><strong>Add your wallet below.</strong> Copy its public address from the PermawebOS extension.</li>
+            <li id="apply-step"><strong>Load and restart.</strong> Download the configuration, open Load JSON in AndEE, then Apply &amp; close and reopen.</li>
+            <li><strong>Connect and chat.</strong> Paste AndEE's public link into the extension and choose Continue with ChatGPT.</li>
+          </ol>
         </section>
 
         <section class="role-panel" aria-labelledby="capabilities-heading">
           <div class="section-heading">
             <div>
               <h2 id="capabilities-heading">Profile</h2>
-              <p>Your agent, public access and paid bundling, together.</p>
+              <p id="profile-description">Full includes everything needed for your agent and ChatGPT connection.</p>
             </div>
           </div>
           <div class="custom-select" id="capability-picker">
@@ -63,13 +71,13 @@
         <section class="settings-group" id="agent-card" aria-labelledby="agent-heading">
           <div class="section-heading"><div>
             <h2 id="agent-heading">Your agent</h2>
-            <p id="agent-description">Ouroboros and Intelligence Pool are included. Connect ChatGPT in the extension after AndEE starts. Bundling payments go to the wallet below.</p>
+            <p id="agent-description">Ouroboros, Intelligence Pool, inference, messaging and AndEE's execution tools are configured together.</p>
           </div></div>
           <div class="field-list">
             <label class="stacked-field">Extension wallet address
-              <input id="agent-owner" type="text" autocomplete="off" spellcheck="false" placeholder="Your 43-character Arweave address" aria-describedby="agent-owner-help" />
+              <input id="agent-owner" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste your public Arweave wallet address" aria-describedby="agent-owner-help" required />
             </label>
-            <p id="agent-owner-help" class="inline-note">Copy the public address from your extension's unlocked wallet. This binds the agent and ChatGPT connection to you.</p>
+            <p id="agent-owner-help" class="inline-note">Unlock the extension and copy your wallet address at the top. Use that same wallet for ChatGPT sign-in. No API key or callback URL is needed here.</p>
             <details class="subsettings">
               <summary>Use an API key instead</summary>
               <div class="subsettings__body">
@@ -99,7 +107,7 @@
           <summary>Staking and public access</summary>
           <div class="subsettings__body">
             <p id="deployment-status" role="status">Loading deployment settings…</p>
-            <p>After applying, tap <strong>Apply &amp; close</strong> and reopen AndEE. Use its public URL in the extension, then choose and join a zone on the staking page.</p>
+            <p>Full also prepares paid bundling. Payments go to your extension wallet unless you change the payout address below. To participate as a staked bundler, choose and join a zone on the staking page. You can connect ChatGPT before staking.</p>
             <a id="staking-link" href="https://ao.arweave.net/#/stake/bundle" target="_blank" rel="noopener noreferrer">Open AO staking</a>
           </div>
         </details>
@@ -254,6 +262,7 @@
         </section>
 
         <div class="action-area">
+          <p class="apply-hint" id="apply-hint" role="status">Paste your extension wallet address to continue.</p>
           <p class="error" id="build-error" role="status" hidden></p>
           <button id="download" type="button" class="button button--primary">
             <svg viewBox="0 0 20 20" aria-hidden="true">
