@@ -107,7 +107,7 @@ export const CAPABILITIES = [
     id: "full",
     name: "Full",
     blurb: "Your agent, ChatGPT connection, public URL and staked bundler, configured together.",
-    adds: ["Ouroboros and Intelligence Pool", "public access", "paid bundling and staking setup"],
+    adds: ["Ouroboros and Intelligence Pool", "a tunnel", "paid bundling and staking setup"],
   },
   {
     id: "staked-bundler",
@@ -117,7 +117,7 @@ export const CAPABILITIES = [
   },
   {
     id: "tunnel",
-    name: "Public access",
+    name: "Tunnel configuration",
     blurb: "Give the node a public URL through a tunnel.",
     adds: ["on.start: tunnel connect", "trusted-devices: tunnel@1.0"],
   },
@@ -145,7 +145,7 @@ export const PROFILES = [
   {
     id: "full",
     name: "Full",
-    blurb: "Ouroboros, Intelligence Pool, public access and staked bundling.",
+    blurb: "Ouroboros, Intelligence Pool, a tunnel and staked bundling.",
     full: true,
   },
   {

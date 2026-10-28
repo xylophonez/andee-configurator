@@ -75,3 +75,23 @@ test("incomplete releases, bad ownership and mixed presets cannot produce a conf
   }
   assert.throws(() => buildConfig({ ...choices, layers: ["full", "zone"] }), /on its own/);
 });
+
+test("Full uses the visible tunnel controls in its startup composition", () => {
+  const config = buildConfig({ ...choices, tunnelPeer: "https://another.tunnel.test/", tunnelWorkers: 5, tunnelImpl: "T".repeat(43) });
+  const hook = config.on.start.find((entry) => entry.device === "tunnel@1.0");
+  assert.equal(hook.peer, "https://another.tunnel.test");
+  assert.equal(hook.workers, 5);
+  assert.equal(config["trusted-devices"]["tunnel@1.0"], "T".repeat(43));
+  assert.equal(buildConfig({ ...choices, tunnelWorkers: 99 }).on.start[1].workers, 32);
+  assert.throws(() => buildConfig({ ...choices, tunnelPeer: "" }), /Tunnel/);
+});
+
+test("a selected tunnel provider still passes production validation", () => {
+  const production = { ...deployment, mode: "production", gateway: "https://arweave.net", tunnel: { peer: "https://smoke.solutions" } };
+  for (const tunnelPeer of ["https://private.home", "https://127.0.0.1", "https://smoke.solutions/path", "http://smoke.solutions"]) {
+    assert.throws(() => buildConfig({ ...choices, deployment: production, tunnelPeer }), /Tunnel/);
+  }
+  const config = buildConfig({ ...choices, deployment: production, tunnelPeer: "https://relay.smoke.solutions", tunnelWorkers: 3 });
+  assert.equal(config.on.start[1].peer, "https://relay.smoke.solutions");
+  assert.equal(config.on.start[1].workers, 3);
+});

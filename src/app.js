@@ -408,7 +408,7 @@ function renderTunnelOptions(selectedId = el("tunnel-select").value || TUNNELS[0
   custom.value = "custom";
   custom.textContent = "Other…";
   select.append(custom);
-  selectTunnel(findTunnel(selectedId) ? selectedId : (TUNNELS[0]?.id ?? "custom"));
+  selectTunnel(findTunnel(selectedId) ? selectedId : "custom");
   setupCustomSelect({
     rootId: "tunnel-picker",
     selectId: "tunnel-select",
@@ -484,7 +484,7 @@ async function refreshSelectedTunnel() {
   if (!/^https?:\/\//i.test(peer)) return;
   const note = el("tunnel-discover-note");
   const probe = await probeTunnel(peer, { timeoutMs: 8000 });
-  if (!probe) return;
+  if (!probe || el("tunnel-peer").value.trim() !== peer) return;
   const live = asTunnelEntry(probe);
   liveTunnels.set(probe.peer.replace(/\/+$/, ""), live);
   renderTunnelStatus(live);
@@ -697,8 +697,7 @@ function applyLayers() {
   el("custom-layers").hidden = preset;
   el("bundler-card").open = !full;
   el("agent-card").hidden = !full && !active.has("ouroboros");
-  el("staked-bundler-card").hidden = !full && !active.has("staked-bundler");
-  el("tunnel-card").hidden = !active.has("tunnel");
+  el("tunnel-card").hidden = !preset && !active.has("tunnel");
   el("zone-card").hidden = !active.has("zone");
   el("bundler-card").hidden = !full && !active.has("bundler") && !active.has("staked-bundler");
   el("beneficiary").placeholder = full ? "Same as your extension wallet" : "43-character Arweave address";
@@ -740,12 +739,12 @@ async function loadDeployment() {
     if (!response.ok) throw new Error("Deployment unavailable");
     const deployment = await response.json();
     // render() validates the deployment together with the user's payout address
-    // before enabling a download. Zone selection belongs to the staking UI.
+    // before enabling a download.
     state.deployment = deployment;
     el("deployment-status").textContent = deployment.mode === "unavailable"
       ? "This package release is not available yet. Configuration can be saved once it is ready."
       : deployment.mode === "production"
-      ? "Staked bundler · real AO payments and Arweave uploads"
+      ? "Bundler packages ready · AO payments and Arweave uploads"
       : deployment.mode === "live-test"
       ? "Live upload test · real AO payments and Arweave uploads"
       : "Local test setup";

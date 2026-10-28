@@ -55,7 +55,7 @@ export function capabilityById(id) {
 export function buildConfig(choices) {
   if (choices.layers?.includes("full") || choices.profile === "full") {
     if (choices.layers?.some((layer) => layer !== "full")) {
-      throw new Error("Full already includes the agent, public access and staked bundler. Select it on its own.");
+      throw new Error("Full already includes the agent, tunnel and staked bundler. Select it on its own.");
     }
     agentConfig(choices);
     const paid = buildStakedBundler({
@@ -84,7 +84,7 @@ export function buildConfig(choices) {
   for (const layer of layers) {
     if (layer === "tunnel") {
       const peer = normalizePeer(choices.tunnelPeer);
-      if (!peer) throw new Error("Tunnel peer is required when Public access is enabled.");
+      if (!peer) throw new Error("Tunnel provider URL is required when the tunnel is enabled.");
       startHooks.push({
         device: "tunnel@1.0",
         method: "POST",
@@ -224,14 +224,14 @@ function buildStakedBundler(choices) {
     if (!/^[A-Za-z0-9_-]{43}$/.test(value ?? "")) throw new Error(`${label} is missing or invalid.`);
     return value;
   };
-  const peer = origin(d.tunnel?.peer, "Tunnel", true);
+  const peer = origin(normalizePeer(choices.tunnelPeer ?? d.tunnel?.peer), "Tunnel", true);
   const host = new URL(peer).hostname;
   if (host.length > 200 || /^\d+(\.\d+){3}$/.test(host) || !host.split(".").every((label) =>
     label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label))) {
     throw new Error("Tunnel must have a DNS hostname that supports node subdomains.");
   }
   if (d.mode === "production") {
-    for (const [value, label] of [[d.tunnel?.peer, "Tunnel"], [d.gateway, "Upload gateway"]]) {
+    for (const [value, label] of [[peer, "Tunnel"], [d.gateway, "Upload gateway"]]) {
       const url = new URL(origin(value, label, true));
       if (!url.hostname.includes(".") || /^[\d.]+$/.test(url.hostname) || url.hostname.includes(":") ||
           /\.(local|localhost|lan|home|internal|test|invalid|example|arpa)$/.test(url.hostname)) {
@@ -300,9 +300,12 @@ function buildStakedBundler(choices) {
     gateway,
     on: { ...paid.on, start: [
       ...paid.on.start,
-      { device: "tunnel@1.0", path: "connect", method: "POST", peer, workers: 8, hook: { result: "ignore" } },
+      { device: "tunnel@1.0", path: "connect", method: "POST", peer, workers: clampInt(choices.tunnelWorkers, 1, 32, 8), hook: { result: "ignore" } },
     ] },
   };
+  if (choices.tunnelImpl && choices.tunnelImpl.trim()) {
+    config["trusted-devices"]["tunnel@1.0"] = choices.tunnelImpl.trim();
+  }
   // Fixture routing is explicit. Public compositions inherit RC4's routes.
   if (d.mode === "lab") {
     const opts = { "http-client": "httpc", protocol: "http2", "ao-types": 'atom=("http-client" "protocol")' };

@@ -103,20 +103,11 @@
           </div>
         </section>
 
-        <details class="subsettings" id="staked-bundler-card">
-          <summary>Staking and public access</summary>
-          <div class="subsettings__body">
-            <p id="deployment-status" role="status">Loading deployment settings…</p>
-            <p>Full also prepares paid bundling. Payments go to your extension wallet unless you change the payout address below. To participate as a staked bundler, choose and join a zone on the staking page. You can connect ChatGPT before staking.</p>
-            <a id="staking-link" href="https://ao.arweave.net/#/stake/bundle" target="_blank" rel="noopener noreferrer">Open AO staking</a>
-          </div>
-        </details>
-
         <section class="settings-group" id="tunnel-card" aria-labelledby="tunnel-heading" hidden>
           <div class="section-heading">
             <div>
-              <h2 id="tunnel-heading">Public access</h2>
-              <p>The tunnel gives this node a public URL.</p>
+              <h2 id="tunnel-heading">Tunnel configuration</h2>
+              <p>Connect from anywhere through a tunnel. After applying, reopen AndEE to see and share your node’s public URL.</p>
             </div>
           </div>
           <div class="field-list">
@@ -135,7 +126,7 @@
                 <select id="tunnel-select" class="native-select" aria-hidden="true" tabindex="-1" hidden></select>
               </div>
             </div>
-            <label class="stacked-field">Tunnel URL
+            <label class="stacked-field">Tunnel provider URL
               <input id="tunnel-peer" type="url" inputmode="url" autocomplete="off" spellcheck="false" />
             </label>
             <div class="tunnel-status" id="tunnel-status" aria-live="polite" hidden>
@@ -209,6 +200,7 @@
         <details class="subsettings" id="bundler-card" hidden>
           <summary>Bundler settings</summary>
           <div class="subsettings__body">
+            <p id="deployment-status" role="status">Loading deployment settings…</p>
           <div class="field-list">
             <label class="stacked-field">Your payout address
               <input id="beneficiary" type="text" autocomplete="off" spellcheck="false" placeholder="43-character Arweave address" aria-describedby="beneficiary-help beneficiary-error" />
