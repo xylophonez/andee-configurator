@@ -26,7 +26,7 @@ class AndeePhoneElement extends HTMLElementBase {
     this.canvas.setAttribute("role", "img");
     this.canvas.setAttribute(
       "aria-label",
-      this.getAttribute("aria-label") || "Rotating wireframe AndEE phone",
+      this.getAttribute("aria-label") || "Rotating wireframe phone",
     );
     this.shadowRoot.append(style, this.canvas);
     this.yaw = 0.36;
@@ -57,7 +57,7 @@ class AndeePhoneElement extends HTMLElementBase {
     if (!this.canvas) return;
     const status = this.getAttribute("status");
     const prefix = status === "connected" ? "Connected " : status === "disconnected" ? "Disconnected " : "";
-    this.canvas.setAttribute("aria-label", `${prefix}rotating wireframe AndEE phone preview`);
+    this.canvas.setAttribute("aria-label", `${prefix}rotating wireframe phone preview`);
   }
 
   resize() {

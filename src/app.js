@@ -691,8 +691,8 @@ function applyLayers() {
   const preset = full || active.has("staked-bundler");
   el("profile-description").textContent = full
     ? "Full includes everything needed for your agent and ChatGPT connection."
-    : "Choose the capabilities you want this AndEE to provide.";
-  el("agent-description").textContent = "Ouroboros, Intelligence Pool, inference, messaging and AndEE's execution tools are configured together.";
+    : "Choose the capabilities you want this node to provide.";
+  el("agent-description").textContent = "Ouroboros, Intelligence Pool, inference, messaging and your node's execution tools are configured together.";
   el("setup-guide").hidden = !full && !active.has("ouroboros");
   el("custom-layers").hidden = preset;
   el("bundler-card").open = !full;
@@ -765,7 +765,7 @@ function render() {
   const ownerMissing = needsOwner && !el("agent-owner").value.trim();
   el("apply-hint").textContent = ownerMissing
     ? "Paste your extension wallet address to continue."
-    : inAndee() ? "Next: Apply & close, then reopen AndEE." : "Next: Load JSON in AndEE, then Apply & close and reopen.";
+    : inAndee() ? "Next: Apply & close, then reopen PermawebOS." : "Next: Load JSON in PermawebOS, then Apply & close and reopen.";
   try {
     const config = buildConfig(currentChoices());
     const stripped = strippedKeys(config);
@@ -846,9 +846,9 @@ async function copy() {
 initTheme();
 boot();
 if (inAndee()) {
-  el("download-label").textContent = "Apply to AndEE";
+  el("download-label").textContent = "Apply to your node";
   el("apply-step").replaceChildren();
   const title = document.createElement("strong");
   title.textContent = "Apply and restart. ";
-  el("apply-step").append(title, "Tap Apply to AndEE, then Apply & close and reopen the app.");
+  el("apply-step").append(title, "Tap Apply to your node, then Apply & close and reopen the app.");
 }

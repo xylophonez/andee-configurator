@@ -136,7 +136,7 @@ export const CAPABILITIES = [
   {
     id: "ouroboros",
     name: "Ouroboros",
-    blurb: "Run your agent with Intelligence Pool and the tools built into AndEE.",
+    blurb: "Run your agent with Intelligence Pool and the tools built into your node.",
     adds: ["Ouroboros, agent, inference and messaging devices", "Intelligence Pool and your wallet binding"],
   },
 ];
