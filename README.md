@@ -16,9 +16,11 @@ ChatGPT sign-in happens in the extension after boot; there is no callback URL
 field or boot-time login. Optional API-key providers use private configuration;
 preview and clipboard redact the key, while download/apply include it.
 
-The checked-in deployment remains **unavailable** until the reviewed packages
-are published and verified. Empty agent/bootstrap pins deliberately disable
-saving Full; local review manifests are not production releases.
+The checked-in deployment uses the published, verified device packages.
+Full needs only your public extension wallet address. Its opening checklist
+walks through applying the configuration, reopening AndEE, and connecting
+ChatGPT in the extension. Empty or invalid addresses cannot be applied.
+Missing device pins also disable saving; local test manifests cannot be published.
 
 ## Run
 

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "mode": "unavailable",
+  "mode": "production",
   "gateway": "https://arweave.net",
   "tunnel": {
     "peer": "https://smoke.solutions"
@@ -8,12 +8,12 @@
   "payments": {
     "devices": {
       "ao-payment@1.11": {
-        "implementation": "tnQnnofvRjY5w-n2Kl9D5kzFjaMo6wVdlP5MxwOiRT8",
-        "spec": "GWEZr3hrO4QCrsGWcTXROaeFFyGwkuFDITFfwOLrAKM"
+        "spec": "9jhvwDGcaAlQJAjMsxVm8pFvoS4kpD7cinz0L4r-Vn0",
+        "implementation": "tnn8e_CoDFdKxllIfr3UtfWofTuJFwMMLOBvYV_pZqw"
       },
       "arweave-byte-pricing@1.11": {
-        "implementation": "TDf5aJzJgt_fHkWS8KtMNtxkwdN5aW-dkmncDLFGm2Y",
-        "spec": "cMx5jD5XLf1mgQqEP1Q79X0dm5NjeZmBeiAfuB46w-Y"
+        "spec": "jqDxdEEIAbFkDLzh1S54ONVdnxH9OMWEraBZJ0LmzDk",
+        "implementation": "7PTjB4DqOZLPIGHZkN_aGE9mcvGMLrwwjQQrqe3CBqc"
       },
       "pricing-router@1.0": {
         "spec": "iETYyTUYDzvL289qyIpseegjWaR788Pn9I1X5xK4GkA",
@@ -24,8 +24,8 @@
         "implementation": "XW9Ou-scm-HQoKVz9P038Mc6MtCVdrPcY01dvStNVLQ"
       },
       "lapee-p4-bootstrap@1.12": {
-        "spec": "",
-        "implementation": ""
+        "spec": "1SueGAiqQ5LC5HwBe7QDR3sNF0eeW8tuUAD8HbBgnA8",
+        "implementation": "VdTDoEAiWyFo3_kdY956uIafenLprV_BDf2D_d-5WNQ"
       }
     },
     "reservationAmount": 10000000000,
@@ -33,34 +33,35 @@
       "kaYP9bJtpqON8Kyy3RbqnqdtDBDUsPTQTNUCvZtKiFI",
       "q5Fcm0NJ34-ss3E1R9dgjGKLLA0B-KYw0J_6U-Pck6o",
       "aYDOU6kEcE3lK7aA-gTmUKHTbLlQnZZXWpv1_i_Uq1U",
-      "vZY2XY1RD9HIfWi8ift-1_DnHLDadZMWrufSh-_rKF0"
+      "vZY2XY1RD9HIfWi8ift-1_DnHLDadZMWrufSh-_rKF0",
+      "y7iivTAENPj0fq-PJmIgnG8GY7ubDAqoVQwEfJM1TU8"
     ]
   },
   "agent": {
     "devices": {
       "agent@1.0": {
-        "spec": "",
-        "implementation": ""
+        "spec": "MZ430veQagya7fUV70slNi5OavXY0JEoKjBLckTUEq4",
+        "implementation": "nQVPSXCUb6cPagBcdVeqSBJ4-xjZYfks3bmN5yKefSQ"
       },
       "inference@1.0": {
-        "spec": "",
-        "implementation": ""
+        "spec": "o4HhdoJFhjoMoXh4c8S_rATUj8lkQliU1xbpsibkrt8",
+        "implementation": "ex63PwatWFPN4PTbYZ-mHW1Z8l3fHVBFe004X-1kS4M"
       },
       "intelligence-pool@1.0": {
-        "spec": "",
-        "implementation": ""
+        "spec": "LGgsJehXcvYvHDy9sT5G-u-AEFkJYtb0CRWMWsL5xSQ",
+        "implementation": "ZKN4ltYtsSF1I6RMH0tO0pJCbfX84Q04xCgJMPdertQ"
       },
       "ouroboros@1.0": {
-        "spec": "",
-        "implementation": ""
+        "spec": "QzeSN0nZnN_6D8dMu6MccbBJ9c224v_QIanm6rPkRNc",
+        "implementation": "lQu1SwQJASyBFkdVMQD2L4xQ_Tj6nqXs_q8jCRq0DMI"
       },
       "ouroboros-space@1.0": {
-        "spec": "",
-        "implementation": ""
+        "spec": "IZww-7kV4ZsrqgFFySrtXDxM89i1ArxbTsBdJoUSmVc",
+        "implementation": "0dcn0Hj27TUBRQ7x-ic5DcFi9NooD2Immg-TTQowKRw"
       },
       "weavemail@1.0": {
-        "spec": "",
-        "implementation": ""
+        "spec": "eQY5f8bexPwxakV6wrACebmvSLTIqzmkx0nWhh4bBCA",
+        "implementation": "ZvXByogoHJ4oY31V0btaRj2RXA5nPKZtAwz6m8-BAGo"
       }
     }
   }

@@ -120,6 +120,18 @@ test("production forbids private endpoints and test manifests cannot become the 
   }
   const { readFile } = await import("node:fs/promises");
   const current = JSON.parse(await readFile(new URL("../deployment.json", import.meta.url)));
-  assert.equal(current.mode, "unavailable");
-  assert.throws(() => build(current), /disabled/);
+  assert.equal(current.mode, "production");
+  assert.equal(build(current)["bundler-beneficiary"], beneficiary);
+  const full = buildConfig({ layers: ["full"], deployment: current, agentOwner: beneficiary });
+  assert.equal(full["intelligence-pool-subscription-owner"], beneficiary);
+  assert.equal(full["inference-provider"], "intelligence-pool");
+  assert.equal(full.routes, undefined, "public releases inherit the native routes");
+  assert.equal(current.gateway, "https://arweave.net");
+  assert.ok(!JSON.stringify(current).includes("127.0.0.1"));
+  for (const group of [current.agent, current.payments]) {
+    for (const pin of Object.values(group.devices)) {
+      assert.match(pin.spec, /^[A-Za-z0-9_-]{43}$/);
+      assert.match(pin.implementation, /^[A-Za-z0-9_-]{43}$/);
+    }
+  }
 });
