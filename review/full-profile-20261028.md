@@ -1,5 +1,9 @@
 # Full profile and restored Configurator — local review
 
+Historical local-review record. Publication was subsequently authorized and the
+standalone app installed: [published release evidence](full-release-20261028.md).
+The publication boundary below describes the earlier review build.
+
 Request: restore Configure in AndEE, put Full first with the complete agent and
 staked-bundler composition, and accept pasted node links regardless of their path.
 

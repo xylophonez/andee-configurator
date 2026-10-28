@@ -170,15 +170,16 @@ public deployment without signing or uploading.
 
 `deploy.mjs` signs and uploads each static asset, including `deployment.json`, through a bundler, then
 uploads an Arweave path manifest. Every publication gets a new immutable
-manifest ID. The current Android `OrnamentActivity` opens the fixed URL
-`https://arweave.net/BD8gs73YRzTwOJ0YpDTE3DOxjbQQ8vhhgIVJc11T_mA/`, so
+manifest ID. Android's Configure button opens `ConfiguratorActivity` at
+`https://arweave.net/Pa3OuFqmwvueGE0ROLMofBVeCQX4NOseP1CMLKLn9qs/`, so
 local source changes do not alter the page already installed on a phone.
 
 After reviewing and authorizing a new publication, publish the static assets,
 verify the new manifest and all module paths, update Android's
-`CONFIGURATOR_URL` to that manifest ID, rebuild the app, and test its separate
-browser and LOAD CONFIG flow. The local static review bundle contains no signed
-data-item IDs; those only exist after publication.
+`CONFIGURATOR_URL` to that manifest ID, rebuild the app, and test the published
+page in both a standalone browser and AndEE's Configure → Apply to AndEE →
+Apply & close → reopen flow. See [the 2026-10-28 release evidence](review/full-release-20261028.md)
+for the published device set, validation and installed APK.
 
 Two traps worth knowing:
 
