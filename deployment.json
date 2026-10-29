@@ -40,28 +40,28 @@
   "agent": {
     "devices": {
       "agent@1.0": {
-        "spec": "MZ430veQagya7fUV70slNi5OavXY0JEoKjBLckTUEq4",
-        "implementation": "nQVPSXCUb6cPagBcdVeqSBJ4-xjZYfks3bmN5yKefSQ"
+        "spec": "v_7VEZHunCQw8jmjIqmCZvSCQaBm1ygbwysyTmVmzpk",
+        "implementation": "kLIMy5Wpw_Y5uzS3lnfq6ckhcYpDosL3TQYyenDSLg8"
       },
       "inference@1.0": {
-        "spec": "o4HhdoJFhjoMoXh4c8S_rATUj8lkQliU1xbpsibkrt8",
-        "implementation": "ex63PwatWFPN4PTbYZ-mHW1Z8l3fHVBFe004X-1kS4M"
+        "spec": "ueqbSsJBX2eUmFCUKPcpHa3mCWWGFuzeSNfe_8uVpWY",
+        "implementation": "x_qh9r2-w8mPzlRpe5ArVpcBVHi-BW3oU5Ptzec8ddA"
       },
       "intelligence-pool@1.0": {
         "spec": "LGgsJehXcvYvHDy9sT5G-u-AEFkJYtb0CRWMWsL5xSQ",
         "implementation": "ZKN4ltYtsSF1I6RMH0tO0pJCbfX84Q04xCgJMPdertQ"
       },
       "ouroboros@1.0": {
-        "spec": "QzeSN0nZnN_6D8dMu6MccbBJ9c224v_QIanm6rPkRNc",
-        "implementation": "lQu1SwQJASyBFkdVMQD2L4xQ_Tj6nqXs_q8jCRq0DMI"
+        "spec": "XaL7SCncyZoPyrBksUIuSxoAZ3VkAH4FKqnstvNzawQ",
+        "implementation": "N_Sl-7G6avpHC7aryAaCviMSI1ArvQIY4Hakv7ql1KM"
       },
       "ouroboros-space@1.0": {
-        "spec": "IZww-7kV4ZsrqgFFySrtXDxM89i1ArxbTsBdJoUSmVc",
-        "implementation": "0dcn0Hj27TUBRQ7x-ic5DcFi9NooD2Immg-TTQowKRw"
+        "spec": "fyd2gGSh7cRF5jPqgKuzymATly6wutmsiZJNDzBO2Gg",
+        "implementation": "YE3xdvXuRmwJgA5MQR1zNN4-RMPpvNWPk4cfcJ9lXXQ"
       },
       "weavemail@1.0": {
-        "spec": "eQY5f8bexPwxakV6wrACebmvSLTIqzmkx0nWhh4bBCA",
-        "implementation": "ZvXByogoHJ4oY31V0btaRj2RXA5nPKZtAwz6m8-BAGo"
+        "spec": "el1Vg6QfEs2X_BTb7PV3Y3IcBVCa_0_Tte1qoR9p6Yo",
+        "implementation": "fzOiFhy9jG4M7Dy4fql3OUmOTN9g6C5nTpUtMZWyHFM"
       }
     }
   }
