@@ -10,12 +10,16 @@ export function providerConfig({ provider, apiKey, model } = {}) {
   const preset = INFERENCE_PROVIDERS[provider];
   if (!preset) throw new Error("Select a supported AI provider.");
   const key = String(apiKey || "").trim();
-  const models = providerModelIds(model);
+  const models = String(model || "").trim() ? providerModelIds(model) : [];
   if (!key || /[\x00-\x20\x7f]/.test(key)) throw new Error("Enter a provider API key without whitespace.");
   return {
     "inference-provider-priority": [provider],
     "inference-providers": {
-      [provider]: { "base-url": preset.baseUrl, "default-model": models[0], models: models.map((id) => ({ id })), priv: { "api-key": key } },
+      [provider]: {
+        "base-url": preset.baseUrl,
+        ...(models.length ? { "default-model": models[0], models: models.map((id) => ({ id })) } : {}),
+        priv: { "api-key": key },
+      },
     },
   };
 }

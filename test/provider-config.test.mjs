@@ -31,8 +31,17 @@ test("multiple models preserve order, variants and aliases, and deduplicate exac
 });
 
 test("invalid IDs produce a visible input error rather than an empty catalogue", () => {
-  for (const model of ["", " , \n", "vendor/model name", "vendor/model\tname", "vendor/\0model", "https://openrouter.ai/vendor/model"]) {
+  for (const model of [" , \n", "vendor/model name", "vendor/model\tname", "vendor/\0model", "https://openrouter.ai/vendor/model"]) {
     assert.throws(() => providerConfig({ provider: "openrouter", apiKey: "synthetic-only", model }), /Paste model IDs/);
+  }
+});
+
+test("key-only setup leaves the native provider catalogue discovery enabled", () => {
+  for (const model of [undefined, "", " \n "]) {
+    const provider = providerConfig({ provider: "openrouter", apiKey: "synthetic-only", model })["inference-providers"].openrouter;
+    assert.equal(Object.hasOwn(provider, "models"), false);
+    assert.equal(Object.hasOwn(provider, "default-model"), false);
+    assert.equal(provider.priv["api-key"], "synthetic-only");
   }
 });
 
