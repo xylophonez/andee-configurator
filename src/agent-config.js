@@ -25,6 +25,7 @@ export function agentConfig(choices) {
   }
   const provider = providerConfig(choices.inference);
   return {
+    admin: owner,
     operator: owner,
     "ouroboros-operator-address": owner,
     "ouroboros-execution-device": "andock@1.0",

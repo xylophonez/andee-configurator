@@ -19,6 +19,17 @@ const base = {
   maxItems: "1000",
 };
 
+test("agent setups provision the paired wallet as node administrator", () => {
+  for (const profile of ["full", "ouroboros", "ouroboros-bundler"]) {
+    const config = buildConfig({ ...base, profile });
+    assert.equal(config.admin, owner);
+    assert.equal(config.operator, owner);
+    assert.equal(config["ouroboros-operator-address"], owner);
+    assert.deepEqual(strippedKeys(config), []);
+  }
+  assert.equal(buildConfig({ ...base, profile: "plain" }).admin, undefined);
+});
+
 test("all agent profiles retain APUS last without changing the selected provider", () => {
   for (const profile of ["full", "ouroboros", "ouroboros-bundler"]) {
     const normal = buildConfig({ ...base, profile });
