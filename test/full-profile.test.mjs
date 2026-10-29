@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildConfig, strippedKeys } from "../src/build-config.js";
-import { AGENT_DEVICES, CAPABILITIES, PROFILES } from "../src/presets.js";
+import { AGENT_DEVICES, CAPABILITIES, PROFILES, TUNNELS, TUNNEL_IMPL, TUNNEL_PEER } from "../src/presets.js";
 import { publicConfigPreview } from "../src/provider-config.js";
 import { deployment, owner } from "./fixtures/full-deployment.mjs";
 
@@ -94,4 +94,14 @@ test("a selected tunnel provider still passes production validation", () => {
   const config = buildConfig({ ...choices, deployment: production, tunnelPeer: "https://relay.smoke.solutions", tunnelWorkers: 3 });
   assert.equal(config.on.start[1].peer, "https://relay.smoke.solutions");
   assert.equal(config.on.start[1].workers, 3);
+});
+
+test("choosing Mystical only changes Full's tunnel peer", () => {
+  const smoke = buildConfig({ ...choices, tunnelPeer: TUNNELS.find((tunnel) => tunnel.id === "smoke").peer, tunnelImpl: TUNNEL_IMPL });
+  const mystical = buildConfig({ ...choices, tunnelPeer: TUNNEL_PEER, tunnelImpl: TUNNEL_IMPL });
+  const hook = smoke.on.start.find((entry) => entry.device === "tunnel@1.0");
+  assert.equal(hook.peer, "https://smoke.solutions");
+  hook.peer = "https://tunnel.mystical.computer";
+  assert.deepEqual(mystical, smoke);
+  assert.equal(mystical["trusted-devices"]["tunnel@1.0"], undefined);
 });

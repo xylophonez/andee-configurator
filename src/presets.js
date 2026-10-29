@@ -7,8 +7,8 @@
 // deliberately absent — the store strips them and restores the measured base
 // values, so offering them here would only mislead.
 
-// Routers are discovered, not listed. One is hard-coded as a bootstrap so the
-// picker is usable before discovery runs, with no network and on a first load.
+// Known routers bootstrap the picker before discovery runs, with no network
+// and on a first load. Discovery can add other providers.
 //
 // Deliberately no `note`. A hard-coded sentence about somebody else's tunnel is
 // a claim we cannot keep true: it describes behaviour that changes without us
@@ -16,10 +16,16 @@
 // about itself -- price, how many nodes trust it, which implementation it pins
 // -- is read from the router when it is probed.
 //
-// RC4 supplies tunnel@1.0 in the measured platform preload. Providers do not
+// The measured platform preload supplies tunnel@1.0. Providers do not
 // choose the implementation installed on the phone. Explicit operator pins
 // remain available through the advanced field.
 export const TUNNELS = [
+  {
+    id: "mystical",
+    name: "tunnel.mystical.computer",
+    peer: "https://tunnel.mystical.computer",
+    impl: "",
+  },
   {
     id: "smoke",
     name: "smoke.solutions",
@@ -30,7 +36,7 @@ export const TUNNELS = [
 
 export const TUNNEL_PEER = TUNNELS[0].peer;
 
-// Empty selects the implementation supplied by the RC4 platform preload.
+// Empty selects the implementation supplied by the measured platform preload.
 export const TUNNEL_IMPL = TUNNELS[0].impl;
 
 export function tunnelById(id) {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildConfig, normalizePeer, strippedKeys, RESERVED_BOOT_KEYS } from "../src/build-config.js";
-import { TUNNELS, TUNNEL_IMPL, TUNNEL_PEER, ZONES, tunnelByPeer } from "../src/presets.js";
+import { TUNNELS, TUNNEL_IMPL, TUNNEL_PEER, ZONES, tunnelById, tunnelByPeer } from "../src/presets.js";
 
 import { deployment, owner } from "./fixtures/full-deployment.mjs";
 
@@ -194,8 +194,9 @@ test("a zone layer may host without forcing public access", () => {
   assert.equal(config["trusted-devices"], undefined);
 });
 
-test("the default Smoke tunnel uses the bundled RC4 implementation", () => {
-  assert.equal(TUNNEL_PEER, "https://smoke.solutions");
+test("the default Mystical tunnel uses the measured platform implementation", () => {
+  assert.equal(TUNNEL_PEER, "https://tunnel.mystical.computer");
+  assert.equal(tunnelById("smoke").peer, "https://smoke.solutions");
   assert.equal(TUNNEL_IMPL, "");
   assert.equal(TUNNELS[0].impl, "");
 });
