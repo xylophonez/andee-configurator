@@ -43,6 +43,14 @@ test("Full lets the owner bundle for free and leaves the staked bundler priced",
   assert.equal(buildConfig({ layers: ["staked-bundler"], deployment, beneficiary: owner })["faff-allow-list"], undefined);
 });
 
+test("the owner exemption uses the same normalized addresses as the node configuration", () => {
+  assert.deepEqual(buildConfig({ ...choices, agentOwner: ` ${owner} ` })["faff-allow-list"], [owner]);
+  const beneficiary = "B".repeat(43);
+  const config = buildConfig({ ...choices, agentOwner: ` ${owner} `, beneficiary: ` ${beneficiary} ` });
+  assert.deepEqual(config["faff-allow-list"], [config.operator, config["bundler-beneficiary"]]);
+  assert.deepEqual(config["faff-allow-list"], [owner, beneficiary]);
+});
+
 test("every agent dependency loads through normal pins and the owner stays consistent", () => {
   const config = buildConfig(choices);
   for (const name of AGENT_DEVICES) {

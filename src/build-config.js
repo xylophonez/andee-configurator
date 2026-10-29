@@ -60,12 +60,13 @@ export function buildConfig(choices) {
     agentConfig(choices);
     const beneficiary = String(choices.beneficiary || "").trim() || choices.agentOwner;
     const paid = buildStakedBundler({ ...choices, beneficiary });
+    const full = withAgent(paid, choices);
     return sortKeys(withPackageIndex({
-      ...withAgent(paid, choices),
+      ...full,
       "andee-profile-source": "andee-configurator/full",
       // The owner and beneficiary bundle for free; other signers keep byte pricing
       // (lapee-p4-bootstrap@1.13).
-      "faff-allow-list": [...new Set([choices.agentOwner, beneficiary])],
+      "faff-allow-list": [...new Set([full.operator, full["bundler-beneficiary"]])],
     }, choices.deployment));
   }
   if (choices.layers?.includes("staked-bundler") || choices.profile === "staked-bundler") {
