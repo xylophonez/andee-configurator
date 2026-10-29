@@ -62,13 +62,13 @@ export function buildConfig(choices) {
       ...choices,
       beneficiary: String(choices.beneficiary || "").trim() || choices.agentOwner,
     });
-    return sortKeys({ ...withAgent(paid, choices), "andee-profile-source": "andee-configurator/full" });
+    return sortKeys(withPackageIndex({ ...withAgent(paid, choices), "andee-profile-source": "andee-configurator/full" }, choices.deployment));
   }
   if (choices.layers?.includes("staked-bundler") || choices.profile === "staked-bundler") {
     if (choices.layers?.some((layer) => layer !== "staked-bundler")) {
       throw new Error("Staked bundler already includes its required capabilities. Select it on its own.");
     }
-    return buildStakedBundler(choices);
+    return sortKeys(withPackageIndex(buildStakedBundler(choices), choices.deployment));
   }
   const legacyProfile = choices.profile ? profileById(choices.profile) : null;
   const layers = normalizeLayers(
@@ -191,7 +191,33 @@ export function buildConfig(choices) {
   }
 
   config["andee-profile-source"] = `andee-configurator/${layers.join("+") || "plain"}`;
-  return sortKeys(activeLayers.has("ouroboros") ? withAgent(config, choices) : config);
+  return sortKeys(withPackageIndex(activeLayers.has("ouroboros") ? withAgent(config, choices) : config, choices.deployment));
+}
+
+/** Index only the selected release blocks through the node's existing verified Arweave store. */
+function withPackageIndex(config, deployment) {
+  if (!deployment?.packageBlocks) return config;
+  const pins = new Set([
+    ...Object.values(config["trusted-devices"] || {}),
+    ...(config["name-resolvers"] || []).flatMap((entry) =>
+      entry && typeof entry === "object" && !entry.device ? Object.values(entry) : []),
+  ]);
+  const blocks = [...new Set([...pins].filter((pin) => pin in deployment.packageBlocks)
+    .map((pin) => deployment.packageBlocks[pin]))].sort((a, b) => b - a);
+  if (blocks.some((block) => !Number.isSafeInteger(block) || block < 0)) {
+    throw new Error("Package confirmation blocks are invalid in this release.");
+  }
+  if (!blocks.length) return config;
+  const hooks = blocks.map((block) => ({
+    device: "apply@1.0",
+    path: "pair",
+    base: "base:package-base",
+    request: "base:package-request",
+    "package-base": { device: "copycat@1.0" },
+    "package-request": { path: "arweave", mode: "shallow", from: block, to: block, reindex: false },
+    hook: { result: "ignore" },
+  }));
+  return { ...config, on: { ...config.on, start: [...hooks, ...(config.on?.start || [])] } };
 }
 
 function withAgent(config, choices) {
