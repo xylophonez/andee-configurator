@@ -8,7 +8,7 @@ export const deployment = {
     spec: String(i + 1).repeat(43), implementation: String(i + 2).repeat(43),
   }])) },
   payments: { reservationAmount: 10000000000, signers: [owner], devices: Object.fromEntries([
-    "ao-payment@1.11", "arweave-byte-pricing@1.11", "lapee-p4-bootstrap@1.12",
-    "pricing-router@1.0", "simple-oracle@1.0",
+    "ao-payment@1.11", "arweave-byte-pricing@1.11", "lapee-p4-bootstrap@1.13",
+    "pricing-router@1.1", "simple-oracle@1.0",
   ].map((name, i) => [name, { spec: String(i + 3).repeat(43), implementation: String(i + 4).repeat(43) }])) },
 };

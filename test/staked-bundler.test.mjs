@@ -8,8 +8,8 @@ export const deployment = {
   tunnel: { peer: "https://tunnel.example", implementation: "a".repeat(43) },
   gateway: "http://127.0.0.1:36245",
   payments: { reservationAmount: 10000000000, signers: ["s".repeat(43)], devices: Object.fromEntries([
-    "ao-payment@1.11", "arweave-byte-pricing@1.11", "lapee-p4-bootstrap@1.12",
-    "pricing-router@1.0", "simple-oracle@1.0",
+    "ao-payment@1.11", "arweave-byte-pricing@1.11", "lapee-p4-bootstrap@1.13",
+    "pricing-router@1.1", "simple-oracle@1.0",
   ].map((name, i) => [name, { spec: String(i).repeat(43), implementation: String(i + 1).repeat(43) }])) },
 };
 const beneficiary = "c".repeat(43);
@@ -35,7 +35,7 @@ test("recommended preset composes v0.11 devices without phone-specific input", (
   assert.equal(config.routes[1].template, "/graphql");
   assert.equal(config.routes[1].node.prefix, deployment.gateway);
   assert.equal(config["bundler-beneficiary"], beneficiary);
-  assert.equal(config.on.start[0].device, deployment.payments.devices["lapee-p4-bootstrap@1.12"].spec);
+  assert.equal(config.on.start[0].device, deployment.payments.devices["lapee-p4-bootstrap@1.13"].spec);
   assert.equal(config["ao-payment-ledger-path"], "/ledger~node-process@1.0");
   assert.equal(config["arweave-byte-price"], "dynamic");
   assert.equal(config["bundler-free-byte-limit"], 0);

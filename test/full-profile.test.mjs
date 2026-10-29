@@ -51,6 +51,19 @@ test("the owner exemption uses the same normalized addresses as the node configu
   assert.deepEqual(config["faff-allow-list"], [owner, beneficiary]);
 });
 
+test("Full resolves the released pricing devices by version and canonical aliases", () => {
+  const config = buildConfig(choices);
+  for (const [name, alias] of [["lapee-p4-bootstrap@1.13", "lapee-p4-bootstrap@1.0"],
+    ["pricing-router@1.1", "pricing-router@1.0"]]) {
+    const pin = deployment.payments.devices[name];
+    assert.equal(config["name-resolvers"][0][name], pin.spec);
+    assert.equal(config["name-resolvers"][0][alias], pin.spec);
+    for (const reference of [name, alias, pin.spec]) {
+      assert.equal(config["trusted-devices"][reference], pin.implementation);
+    }
+  }
+});
+
 test("every agent dependency loads through normal pins and the owner stays consistent", () => {
   const config = buildConfig(choices);
   for (const name of AGENT_DEVICES) {

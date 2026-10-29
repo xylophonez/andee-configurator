@@ -306,14 +306,15 @@ function buildStakedBundler(choices) {
     }
     paid["trusted-device-signers"] = d.payments.signers.map((signer) => id(signer, "Payment package signer"));
     for (const name of ["ao-payment@1.11", "arweave-byte-pricing@1.11",
-      "lapee-p4-bootstrap@1.12",
-      "pricing-router@1.0", "simple-oracle@1.0"]) {
+      "lapee-p4-bootstrap@1.13",
+      "pricing-router@1.1", "simple-oracle@1.0"]) {
       const pin = d.payments.devices?.[name];
       const spec = id(pin?.spec, `${name} specification`);
       const impl = id(pin?.implementation, `${name} implementation`);
       const alias = ({ "ao-payment@1.11": "ao-payment@1.0",
         "arweave-byte-pricing@1.11": "arweave-byte-pricing@1.0",
-        "lapee-p4-bootstrap@1.12": "lapee-p4-bootstrap@1.0" })[name] ?? name;
+        "lapee-p4-bootstrap@1.13": "lapee-p4-bootstrap@1.0",
+        "pricing-router@1.1": "pricing-router@1.0" })[name] ?? name;
       delete paid["trusted-devices"][paid["name-resolvers"][0][alias]];
       paid["name-resolvers"][0][alias] = spec;
       paid["name-resolvers"][0][name] = spec;

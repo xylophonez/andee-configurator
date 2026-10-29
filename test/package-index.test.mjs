@@ -7,13 +7,13 @@ const owner = "c".repeat(43);
 const build = (layers, release = deployment, extra = {}) => buildConfig({ layers, deployment: release, agentOwner: owner, beneficiary: owner, ...extra });
 const indexHooks = (config) => config.on?.start?.filter((hook) => hook.device === "apply@1.0") || [];
 
-test("Full's complete current release is covered by four bounded native index hooks", () => {
+test("Full's complete current release is covered by five bounded native index hooks", () => {
   const config = build(["full"]);
   const pins = new Set([...Object.values(config["name-resolvers"][0]), ...Object.values(config["trusted-devices"])]);
   assert.equal(pins.size, 24);
   for (const pin of pins) assert.ok(Number.isSafeInteger(deployment.packageBlocks[pin]), `Missing confirmed block for ${pin}`);
   const hooks = indexHooks(config);
-  assert.deepEqual(hooks.map((hook) => hook["package-request"].from), [2031295, 2030648, 2025980, 1940677]);
+  assert.deepEqual(hooks.map((hook) => hook["package-request"].from), [2031562, 2031295, 2030648, 2025980, 1940677]);
   for (const hook of hooks) {
     assert.deepEqual(hook["package-base"], { device: "copycat@1.0" });
     const block = hook["package-request"].from;
@@ -47,7 +47,7 @@ test("unselected blocks and explicit custom tunnel pins do not add indexing work
   const augmented = { ...deployment, packageBlocks: { ...deployment.packageBlocks, ["z".repeat(43)]: 1 } };
   const config = build(["full"], augmented, { tunnelImpl: "T".repeat(43) });
   assert.equal(config["trusted-devices"]["tunnel@1.0"], "T".repeat(43));
-  assert.equal(indexHooks(config).length, 4);
+  assert.equal(indexHooks(config).length, 5);
   assert.deepEqual(indexHooks(build([], augmented)), []);
 });
 
