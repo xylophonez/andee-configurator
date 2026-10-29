@@ -36,6 +36,13 @@ test("Full is first and preserves the complete paid composition while adding the
   assert.equal(config["andee-profile-source"], "andee-configurator/full");
 });
 
+test("Full lets the owner bundle for free and leaves the staked bundler priced", () => {
+  assert.deepEqual(buildConfig(choices)["faff-allow-list"], [owner]);
+  const other = "B".repeat(43);
+  assert.deepEqual(buildConfig({ ...choices, beneficiary: other })["faff-allow-list"], [owner, other]);
+  assert.equal(buildConfig({ layers: ["staked-bundler"], deployment, beneficiary: owner })["faff-allow-list"], undefined);
+});
+
 test("every agent dependency loads through normal pins and the owner stays consistent", () => {
   const config = buildConfig(choices);
   for (const name of AGENT_DEVICES) {
