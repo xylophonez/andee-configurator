@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { buildConfig, strippedKeys } from "../src/build-config.js";
 import { AGENT_DEVICES, CAPABILITIES, PROFILES, TUNNELS, TUNNEL_IMPL, TUNNEL_PEER } from "../src/presets.js";
@@ -6,6 +7,14 @@ import { publicConfigPreview } from "../src/provider-config.js";
 import { deployment, owner } from "./fixtures/full-deployment.mjs";
 
 const choices = { layers: ["full"], deployment, agentOwner: owner };
+
+test("production profiles without a tunnel choice use the visible default", () => {
+  const production = JSON.parse(readFileSync(new URL("../deployment.json", import.meta.url), "utf8"));
+  for (const layers of [["full"], ["staked-bundler"]]) {
+    const config = buildConfig({ layers, deployment: production, agentOwner: owner, beneficiary: owner });
+    assert.equal(config.on.start.find((hook) => hook.device === "tunnel@1.0").peer, TUNNEL_PEER);
+  }
+});
 
 test("Full is first and preserves the complete paid composition while adding the agent", () => {
   assert.equal(CAPABILITIES[0].id, "full");

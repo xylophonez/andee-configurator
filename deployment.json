@@ -3,7 +3,7 @@
   "mode": "production",
   "gateway": "https://arweave.net",
   "tunnel": {
-    "peer": "https://smoke.solutions"
+    "peer": "https://tunnel.mystical.computer"
   },
   "payments": {
     "devices": {
