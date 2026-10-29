@@ -62,7 +62,7 @@ export function buildConfig(choices) {
       ...choices,
       beneficiary: String(choices.beneficiary || "").trim() || choices.agentOwner,
     });
-    return sortKeys(withPackageIndex({ ...withAgent(paid, choices), "andee-profile-source": "andee-configurator/full" }, choices.deployment));
+    return sortKeys(withPackageIndex({ ...withAgent(paid, choices), "andee-profile-source": "andee-configurator/full", "docs-include-loaded": true }, choices.deployment));
   }
   if (choices.layers?.includes("staked-bundler") || choices.profile === "staked-bundler") {
     if (choices.layers?.some((layer) => layer !== "staked-bundler")) {

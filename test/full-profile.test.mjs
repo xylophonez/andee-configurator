@@ -15,6 +15,9 @@ test("Full is first and preserves the complete paid composition while adding the
   assert.deepEqual(config.on, paid.on);
   assert.deepEqual(config.routes, paid.routes);
   assert.equal(config.on.request, undefined, "inherit the native request hooks");
+  assert.equal(config["docs-include-loaded"], true);
+  assert.equal(paid["docs-include-loaded"], undefined);
+  assert.equal(buildConfig({ layers: [] })["docs-include-loaded"], undefined);
   assert.equal(config["allow-rejected-peer-attestation"], false);
   assert.equal(config["zone-allow"], undefined, "staking owns zone selection");
   assert.equal(config["bundler-beneficiary"], owner);
