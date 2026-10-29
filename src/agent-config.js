@@ -1,5 +1,5 @@
 import { AGENT_DEVICES } from "./presets.js";
-import { providerConfig } from "./provider-config.js";
+import { APUS_PROVIDER, providerConfig } from "./provider-config.js";
 
 /** Compose the existing personal-agent and Pool contracts; no login credentials at boot. */
 export function agentConfig(choices) {
@@ -36,10 +36,14 @@ export function agentConfig(choices) {
     "intelligence-pool-subscription-owner": owner,
     "intelligence-pool-oauth-listener": false,
     "inference-provider": choices.inference?.provider || "intelligence-pool",
-    "inference-provider-priority": provider["inference-provider-priority"] || ["intelligence-pool"],
+    "inference-provider-priority": [...new Set([
+      ...(provider["inference-provider-priority"] || []).filter((id) => id !== "apus"),
+      "intelligence-pool", "apus",
+    ])],
     "inference-providers": {
       "intelligence-pool": { "inference-device": "intelligence-pool@1.0" },
       ...provider["inference-providers"],
+      apus: structuredClone(APUS_PROVIDER),
     },
   };
 }

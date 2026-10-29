@@ -19,6 +19,22 @@ const base = {
   maxItems: "1000",
 };
 
+test("all agent profiles retain APUS last without changing the selected provider", () => {
+  for (const profile of ["full", "ouroboros", "ouroboros-bundler"]) {
+    const normal = buildConfig({ ...base, profile });
+    assert.equal(normal["inference-provider"], "intelligence-pool");
+    assert.deepEqual(normal["inference-provider-priority"], ["intelligence-pool", "apus"]);
+    assert.equal(normal["inference-providers"].apus.priv, undefined);
+    const keyed = buildConfig({ ...base, profile, inference: { provider: "openrouter", apiKey: "synthetic-only" } });
+    assert.equal(keyed["inference-provider"], "openrouter");
+    assert.deepEqual(keyed["inference-provider-priority"], ["openrouter", "intelligence-pool", "apus"]);
+    const free = buildConfig({ ...base, profile, inference: { provider: "apus" } });
+    assert.equal(free["inference-provider"], "apus");
+    assert.deepEqual(free["inference-providers"], normal["inference-providers"]);
+    assert.equal(free["docs-include-loaded"], undefined);
+  }
+});
+
 test("plain profile emits no tunnel, zone or bundler keys", () => {
   const config = buildConfig({ ...base, profile: "plain" });
   assert.equal(config.on, undefined);

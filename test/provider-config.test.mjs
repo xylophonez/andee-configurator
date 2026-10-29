@@ -9,6 +9,16 @@ const ids = [
   "~deepseek/deepseek-flash-latest",
 ];
 
+test("APUS is keyless and preserves its discovered model and context metadata", () => {
+  const provider = providerConfig({ provider: "apus" })["inference-providers"].apus;
+  assert.equal(provider.format, "custom");
+  assert.equal(provider["base-url"], "https://hb.apus.network/~inference@1.0/v1");
+  assert.equal(provider["default-model"], "Qwen/Qwen3.8-27B-FP8");
+  assert.equal(provider.models[0].context_length, 65536);
+  assert.equal(Object.hasOwn(provider, "priv"), false);
+  assert.equal(JSON.stringify(provider).includes("tee"), false);
+});
+
 test("copied provider IDs become catalogue objects without rewriting the ID", () => {
   for (const id of ids) {
     const config = providerConfig({ provider: "openrouter", apiKey: "synthetic-only", model: `  ${id}  ` });

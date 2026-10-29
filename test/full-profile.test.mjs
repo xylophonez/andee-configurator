@@ -42,7 +42,7 @@ test("every agent dependency loads through normal pins and the owner stays consi
   assert.equal(config["intelligence-pool-compute-mode"], "shared");
   assert.equal(config["intelligence-pool-oauth-listener"], false);
   assert.equal(config["inference-provider"], "intelligence-pool");
-  assert.deepEqual(config["inference-provider-priority"], ["intelligence-pool"]);
+  assert.deepEqual(config["inference-provider-priority"], ["intelligence-pool", "apus"]);
   assert.equal(config["inference-providers"]["intelligence-pool"]["inference-device"], "intelligence-pool@1.0");
   assert.ok(!JSON.stringify(config).includes("callback"));
 });
@@ -58,7 +58,7 @@ test("an API key uses private provider configuration without removing Pool", () 
   const config = buildConfig({ ...choices, inference: { provider: "openai", apiKey: "synthetic-secret", model: "synthetic-model" } });
   assert.equal(config["inference-providers"].openai.priv["api-key"], "synthetic-secret");
   assert.equal(config["inference-provider"], "openai");
-  assert.deepEqual(config["inference-provider-priority"], ["openai"]);
+  assert.deepEqual(config["inference-provider-priority"], ["openai", "intelligence-pool", "apus"]);
   assert.ok(config["inference-providers"]["intelligence-pool"]);
   assert.ok(!JSON.stringify(publicConfigPreview(config)).includes("synthetic-secret"));
 });
