@@ -655,7 +655,8 @@ function bindEvents() {
       syncNumberStepper(event.target);
       if (event.target.id === "tunnel-peer") syncTunnelPickerFromPeer();
       if (event.target.id === "inference-provider") {
-        el("inference-key-fields").hidden = !event.target.value;
+        el("inference-key-fields").hidden = !event.target.value || event.target.value === "apus";
+        el("inference-free-note").hidden = event.target.value !== "apus";
       }
       render();
     });
@@ -690,9 +691,9 @@ function applyLayers() {
   const full = active.has("full");
   const preset = full || active.has("staked-bundler");
   el("profile-description").textContent = full
-    ? "Full includes everything needed for your agent and ChatGPT connection."
+    ? "Full includes your agent, free AI and optional ChatGPT or API connections."
     : "Choose the capabilities you want this node to provide.";
-  el("agent-description").textContent = "Ouroboros, Intelligence Pool, inference, messaging and your node's execution tools are configured together.";
+  el("agent-description").textContent = "Your agent, AI connections, messaging and your node's execution tools are configured together.";
   el("setup-guide").hidden = !full && !active.has("ouroboros");
   el("custom-layers").hidden = preset;
   el("bundler-card").open = !full;

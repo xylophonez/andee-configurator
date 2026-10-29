@@ -22,7 +22,7 @@
           <andee-phone class="node-phone" status="preview" aria-label="Rotating wireframe phone"></andee-phone>
           <div class="node-hero__copy" aria-live="polite">
             <h2 id="node-title">Configure your node</h2>
-            <p id="node-detail">Set up your phone, then connect ChatGPT in the extension.</p>
+            <p id="node-detail">Set up your phone, then choose your AI in the extension.</p>
           </div>
         </section>
 
@@ -30,7 +30,7 @@
           <ol class="onboarding-steps">
             <li><strong>Add your wallet below.</strong> Copy its public address from the PermawebOS extension.</li>
             <li id="apply-step"><strong>Load and restart.</strong> Download the configuration, open Load JSON in PermawebOS, then Apply &amp; close and reopen.</li>
-            <li><strong>Connect and chat.</strong> Paste your node's public link into the extension and choose Continue with ChatGPT.</li>
+            <li><strong>Connect and chat.</strong> Paste your node's public link into the extension, then choose free AI, ChatGPT or an API provider.</li>
           </ol>
         </section>
 
@@ -38,7 +38,7 @@
           <div class="section-heading">
             <div>
               <h2 id="capabilities-heading">Profile</h2>
-              <p id="profile-description">Full includes everything needed for your agent and ChatGPT connection.</p>
+              <p id="profile-description">Full includes your agent, free AI and optional ChatGPT or API connections.</p>
             </div>
           </div>
           <div class="custom-select" id="capability-picker">
@@ -71,7 +71,7 @@
         <section class="settings-group" id="agent-card" aria-labelledby="agent-heading">
           <div class="section-heading"><div>
             <h2 id="agent-heading">Your agent</h2>
-            <p id="agent-description">Ouroboros, Intelligence Pool, inference, messaging and your node's execution tools are configured together.</p>
+            <p id="agent-description">Your agent, AI connections, messaging and your node's execution tools are configured together.</p>
           </div></div>
           <div class="field-list">
             <label class="stacked-field">Extension wallet address
@@ -79,16 +79,18 @@
             </label>
             <p id="agent-owner-help" class="inline-note">Unlock the extension and copy your wallet address at the top. Use that same wallet for ChatGPT sign-in. No API key or callback URL is needed here.</p>
             <details class="subsettings">
-              <summary>Use an API key instead</summary>
+              <summary>Choose an AI provider</summary>
               <div class="subsettings__body">
                 <label class="stacked-field">AI provider
                   <select id="inference-provider">
                     <option value="">Connect ChatGPT in the extension</option>
+                    <option value="apus">Start free with APUS — no account</option>
                     <option value="openai">OpenAI</option>
                     <option value="openrouter">OpenRouter</option>
                     <option value="anthropic">Anthropic</option>
                   </select>
                 </label>
+                <p id="inference-free-note" class="inline-note" hidden>Free AI is provided by APUS. Your messages are sent to their servers.</p>
                 <div id="inference-key-fields" hidden>
                   <label class="stacked-field">API key
                     <input id="inference-key" type="password" autocomplete="new-password" spellcheck="false" />

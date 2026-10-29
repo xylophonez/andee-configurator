@@ -106,8 +106,8 @@ export const CAPABILITIES = [
   {
     id: "full",
     name: "Full",
-    blurb: "Your agent, ChatGPT connection, public URL and staked bundler, configured together.",
-    adds: ["Ouroboros and Intelligence Pool", "a tunnel", "paid bundling and staking setup"],
+    blurb: "Your agent, free AI, optional ChatGPT connection, public URL and staked bundler, configured together.",
+    adds: ["Your agent and AI connections", "a tunnel", "paid bundling and staking setup"],
   },
   {
     id: "staked-bundler",
@@ -136,8 +136,8 @@ export const CAPABILITIES = [
   {
     id: "ouroboros",
     name: "Ouroboros",
-    blurb: "Run your agent with Intelligence Pool and the tools built into your node.",
-    adds: ["Ouroboros, agent, inference and messaging devices", "Intelligence Pool and your wallet binding"],
+    blurb: "Run your agent with free AI, optional ChatGPT and the tools built into your node.",
+    adds: ["Ouroboros, agent, inference and messaging devices", "ChatGPT connection and your wallet binding"],
   },
 ];
 
@@ -145,7 +145,7 @@ export const PROFILES = [
   {
     id: "full",
     name: "Full",
-    blurb: "Ouroboros, Intelligence Pool, a tunnel and staked bundling.",
+    blurb: "Your agent, AI connections, a tunnel and staked bundling.",
     full: true,
   },
   {
