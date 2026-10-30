@@ -21,9 +21,9 @@ test("Full is first and preserves the complete paid composition while adding the
   assert.equal(PROFILES[0].name, "Full");
   const config = buildConfig(choices);
   const paid = buildConfig({ layers: ["staked-bundler"], deployment, beneficiary: owner });
-  assert.deepEqual(config.on, paid.on);
+  assert.deepEqual(config.on.start, paid.on.start);
   assert.deepEqual(config.routes, paid.routes);
-  assert.equal(config.on.request, undefined, "inherit the native request hooks");
+  assert.equal(paid.on.request, undefined, "other profiles inherit the native request hooks");
   assert.equal(config["allow-rejected-peer-attestation"], false);
   assert.equal(config["zone-allow"], undefined, "staking owns zone selection");
   assert.equal(config["bundler-beneficiary"], owner);
@@ -34,6 +34,24 @@ test("Full is first and preserves the complete paid composition while adding the
   assert.ok(!JSON.stringify(config).includes("bundler-gc"));
   assert.deepEqual(strippedKeys(config), []);
   assert.equal(config["andee-profile-source"], "andee-configurator/full");
+});
+
+test("tunneled Full preserves request protection and lets the bare root reach Hyperbuddy", () => {
+  const config = buildConfig(choices);
+  assert.ok(config.on.start.some((hook) => hook.device === "tunnel@1.0" && hook.workers > 0));
+  assert.deepEqual(config.on.request, [
+    { device: "rate-limit@1.0" },
+    {
+      device: "auth-hook@1.0", path: "request", when: { keys: ["authorization", "!"] },
+      "secret-provider": { device: "http-auth@1.0", "access-control": { device: "http-auth@1.0" } },
+    },
+    { device: "manifest@1.0" },
+    { device: "blacklist@1.0" },
+  ]);
+  assert.ok(config["name-resolvers"][0]["intelligence-pool@1.0"], "direct package resolution remains configured");
+  assert.equal(config["default-index"], undefined, "retain the runtime's enabled Hyperbuddy index");
+  assert.equal(buildConfig({ profile: "plain" }).on, undefined);
+  assert.equal(buildConfig({ layers: ["staked-bundler"], deployment, beneficiary: owner }).on.request, undefined);
 });
 
 test("Full lets the owner bundle for free and leaves the staked bundler priced", () => {

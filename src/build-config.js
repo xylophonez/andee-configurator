@@ -64,6 +64,23 @@ export function buildConfig(choices) {
     return sortKeys(withPackageIndex({
       ...full,
       "andee-profile-source": "andee-configurator/full",
+      // Full uses the tunnel, which removes its routing host before forwarding.
+      // Keep the native request chain without host-name rewriting so an empty
+      // root reaches HyperBEAM's Hyperbuddy redirect. P4 is prepended at boot.
+      on: { ...full.on, request: [
+        { device: "rate-limit@1.0" },
+        {
+          device: "auth-hook@1.0",
+          path: "request",
+          when: { keys: ["authorization", "!"] },
+          "secret-provider": {
+            device: "http-auth@1.0",
+            "access-control": { device: "http-auth@1.0" },
+          },
+        },
+        { device: "manifest@1.0" },
+        { device: "blacklist@1.0" },
+      ] },
       // The owner and beneficiary bundle for free; other signers keep byte pricing
       // (lapee-p4-bootstrap@1.13).
       "faff-allow-list": [...new Set([full.operator, full["bundler-beneficiary"]])],
