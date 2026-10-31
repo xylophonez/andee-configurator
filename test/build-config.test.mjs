@@ -206,7 +206,8 @@ test("a zone layer may host without forcing public access", () => {
 });
 
 test("the default Mystical tunnel uses the measured platform implementation", () => {
-  assert.equal(TUNNEL_PEER, "https://tunnel.mystical.computer");
+  assert.equal(TUNNEL_PEER, "https://iloveao.online");
+  assert.equal(tunnelById("mystical").peer, "https://tunnel.mystical.computer");
   assert.equal(tunnelById("smoke").peer, "https://smoke.solutions");
   assert.equal(TUNNEL_IMPL, "");
   assert.equal(TUNNELS[0].impl, "");

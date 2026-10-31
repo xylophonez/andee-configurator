@@ -151,12 +151,14 @@ test("a selected tunnel provider still passes production validation", () => {
   assert.equal(config.on.start[1].workers, 3);
 });
 
-test("choosing Mystical only changes Full's tunnel peer", () => {
-  const smoke = buildConfig({ ...choices, tunnelPeer: TUNNELS.find((tunnel) => tunnel.id === "smoke").peer, tunnelImpl: TUNNEL_IMPL });
-  const mystical = buildConfig({ ...choices, tunnelPeer: TUNNEL_PEER, tunnelImpl: TUNNEL_IMPL });
-  const hook = smoke.on.start.find((entry) => entry.device === "tunnel@1.0");
-  assert.equal(hook.peer, "https://smoke.solutions");
-  hook.peer = "https://tunnel.mystical.computer";
-  assert.deepEqual(mystical, smoke);
-  assert.equal(mystical["trusted-devices"]["tunnel@1.0"], undefined);
+test("choosing a known provider only changes Full's tunnel peer", () => {
+  const selected = buildConfig({ ...choices, tunnelPeer: TUNNEL_PEER, tunnelImpl: TUNNEL_IMPL });
+  for (const tunnel of TUNNELS) {
+    const alternate = buildConfig({ ...choices, tunnelPeer: tunnel.peer, tunnelImpl: TUNNEL_IMPL });
+    const hook = alternate.on.start.find((entry) => entry.device === "tunnel@1.0");
+    assert.equal(hook.peer, tunnel.peer);
+    hook.peer = TUNNEL_PEER;
+    assert.deepEqual(selected, alternate);
+  }
+  assert.equal(selected["trusted-devices"]["tunnel@1.0"], undefined);
 });

@@ -3,7 +3,7 @@
   "mode": "production",
   "gateway": "https://arweave.net",
   "tunnel": {
-    "peer": "https://tunnel.mystical.computer"
+    "peer": "https://iloveao.online"
   },
   "payments": {
     "devices": {

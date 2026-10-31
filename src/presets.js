@@ -21,6 +21,12 @@
 // remain available through the advanced field.
 export const TUNNELS = [
   {
+    id: "iloveao",
+    name: "iloveao.online",
+    peer: "https://iloveao.online",
+    impl: "",
+  },
+  {
     id: "mystical",
     name: "tunnel.mystical.computer",
     peer: "https://tunnel.mystical.computer",
