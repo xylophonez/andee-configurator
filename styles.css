@@ -1169,10 +1169,6 @@ main {
   height: 1rem;
 }
 
-.tunnel-status__paid {
-  color: var(--positive);
-}
-
 .error {
   padding: 0.75rem 0.85rem;
   color: var(--negative);

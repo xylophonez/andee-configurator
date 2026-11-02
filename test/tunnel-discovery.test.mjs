@@ -4,7 +4,6 @@ import {
   discoverTunnels,
   locationRecords,
   probeTunnel,
-  describePrice,
   asTunnelEntry,
 } from "../src/tunnel-discovery.js";
 
@@ -163,7 +162,7 @@ test("records without an http(s) url are discarded", async () => {
 
 test("a node that does not answer the tunnel status is not a router", async () => {
   await withFetch(
-    { "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 1, status: 200 } },
+    {},
     async () => {
       assert.equal(await probeTunnel("https://not-a-tunnel.example"), null);
     },
@@ -245,39 +244,19 @@ test("a status response without a tunnel request hook is not provider evidence",
   );
 });
 
-test("a router reports its live pin, metering and registration count", async () => {
+test("a router reports its live pin and registration count, and no price", async () => {
   await withFetch(
     {
       "/~tunnel@1.0/status": { "open-registrations": 16, status: 200 },
       "/~meta@1.0/info/on/request": routerHook,
       "/~meta@1.0/info/trusted-devices/tunnel%401.0": "PINPINPIN\n",
-      "/~meta@1.0/info/metering-rates": {
-        "meta-bytes-in": 1, "meta-bytes-out": 0, "beam-reductions": 0, status: 200,
-      },
     },
     async () => {
-      const probe = await probeTunnel("https://paid.example/");
-      assert.equal(probe.peer, "https://paid.example");
+      const probe = await probeTunnel("https://router.example/");
+      assert.equal(probe.peer, "https://router.example");
       assert.equal(probe.impl, "PINPINPIN");
       assert.equal(probe.registrations, 16);
-      assert.equal(probe.free, false);
-      // Zero-rated resources are not "prices" -- they must not appear.
-      assert.deepEqual(probe.rates, { "meta-bytes-in": 1 });
-    },
-  );
-});
-
-test("zero rates do not imply free service", async () => {
-  await withFetch(
-    {
-      "/~tunnel@1.0/status": { "open-registrations": 3, status: 200 },
-      "/~meta@1.0/info/on/request": routerHook,
-      "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 0, status: 200 },
-    },
-    async () => {
-      const probe = await probeTunnel("https://free.example");
-      assert.equal(probe.free, null);
-      assert.equal(describePrice(probe), "price unavailable");
+      assert.ok(!("free" in probe) && !("rates" in probe), "tunnels carry no price");
     },
   );
 });
@@ -290,7 +269,6 @@ test("an unreadable pin is reported as unknown, not guessed", async () => {
       // Device names contain `@`, which a node renders into an illegal HTTP
       // header name; strict clients reject the whole response.
       "/~meta@1.0/info/trusted-devices": "throw",
-      "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 2, status: 200 },
     },
     async () => {
       const probe = await probeTunnel("https://noping.example");
@@ -300,28 +278,18 @@ test("an unreadable pin is reported as unknown, not guessed", async () => {
   );
 });
 
-test("metering units are not converted into a made-up currency quote", () => {
-  assert.equal(describePrice({ rates: { "request-bytes": 1, "response-bytes": 1 }, free: false }),
-    "metered on request-bytes, response-bytes; terms unverified");
-});
-
-test("a router priced on something other than egress says so", () => {
-  const described = describePrice({ rates: { "meta-request-ms": 4 }, free: false });
-  assert.equal(described, "metered on meta-request-ms; terms unverified");
-});
-
 test("a discovered router is shaped like a built-in one", () => {
   const entry = asTunnelEntry({
     peer: "https://x.example", impl: "PIN", registrations: 1,
-    rates: { "meta-bytes-in": 1 }, egressRate: 1, free: false,
   });
-  for (const key of ["id", "name", "peer", "impl", "registrations", "free", "note"]) {
+  for (const key of ["id", "name", "peer", "impl", "registrations", "note"]) {
     assert.ok(key in entry, `missing ${key}`);
   }
   assert.equal(entry.name, "x.example");
   assert.equal(entry.discovered, true);
   assert.equal(entry.registrations, 1);
-  assert.equal(entry.free, false);
+  assert.ok(!("free" in entry), "tunnels carry no price");
+  assert.doesNotMatch(entry.note, /price|payment/);
   assert.match(entry.note, /measurement not verified/);
   assert.equal(entry.verified, false);
 });
@@ -387,7 +355,6 @@ test("matching the signer proves no measurement verdict", async () => {
       "/~tunnel@1.0/status": { "open-registrations": 2, status: 200 },
       "/~meta@1.0/info/on/request": routerHook,
       "/~meta@1.0/info/address": "NODEADDR",
-      "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 1, status: 200 },
     },
     async () => {
       const { tunnels, identityMismatches } = await discoverTunnels({});
@@ -409,7 +376,6 @@ test("a record claiming someone else's node is marked unverified", async () => {
       "/~tunnel@1.0/status": { "open-registrations": 9, status: 200 },
       "/~meta@1.0/info/on/request": routerHook,
       "/~meta@1.0/info/address": "THE-REAL-NODE",
-      "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 1, status: 200 },
     },
     async () => {
       const { tunnels, identityMismatches } = await discoverTunnels({});
@@ -430,7 +396,6 @@ test("a competing URL claim cannot displace the real node's listing", async () =
     "/~tunnel@1.0/status": { "open-registrations": 2 },
     "/~meta@1.0/info/on/request": routerHook,
     "/~meta@1.0/info/address": "REAL",
-    "/~meta@1.0/info/metering-rates": { "request-bytes": 1 },
   }, async () => {
     const result = await discoverTunnels({});
     assert.equal(result.candidates, 2);
@@ -470,7 +435,6 @@ test("matching location identities sort above mismatches", async () => {
       "/~meta@1.0/info/on/request": routerHook,
       "busy-fake.example/~meta@1.0/info/address": "SOMEONE-ELSE",
       "quiet-real.example/~meta@1.0/info/address": "REAL",
-      "/~meta@1.0/info/metering-rates": { "meta-bytes-in": 1, status: 200 },
     },
     async () => {
       const { tunnels } = await discoverTunnels({ concurrency: 1 });

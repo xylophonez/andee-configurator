@@ -1,6 +1,6 @@
 // Location records provide candidate endpoints. Live probes report what those
-// endpoints say now. Neither is an independent measurement verdict or an
-// enforceable price quote; the picker must keep those limits visible.
+// endpoints say now. Neither is an independent measurement verdict; the
+// picker must keep that limit visible.
 
 const GATEWAY = "https://arweave.net";
 
@@ -64,8 +64,7 @@ function unroutable(url) {
 //
 // So a map whose keys are device names cannot be fetched whole. Ask for the one
 // key instead: `.../trusted-devices/tunnel@1.0` returns the value as the body
-// with no exploded headers. `metering-rates` is fetched whole safely because
-// its keys are ordinary tokens.
+// with no exploded headers.
 
 /** Fetch with a deadline. A discovery pass must not hang on one dead node, and
  *  many published locations are stale, private or plain unreachable. */
@@ -268,7 +267,7 @@ async function hasAdvertisedTunnelRequestHook(base, hooks, timeoutMs, signal) {
  *  configuration claim, not independent measurement or proof of delivery. */
 export async function probeTunnel(url, { timeoutMs = 8000, signal } = {}) {
   const base = url.replace(/\/+$/, "");
-  const [status, requestHooks, impl, rates, address] = await Promise.all([
+  const [status, requestHooks, impl, address] = await Promise.all([
     getJSON(`${base}/~tunnel@1.0/status`, timeoutMs, signal),
     getJSON(`${base}/~meta@1.0/info/on/request`, timeoutMs, signal),
     // Single key, not the whole map -- see the header note above.
@@ -277,7 +276,6 @@ export async function probeTunnel(url, { timeoutMs = 8000, signal } = {}) {
       timeoutMs,
       signal,
     ),
-    getJSON(`${base}/~meta@1.0/info/metering-rates`, timeoutMs, signal),
     // Who the node says it is. Compared against whoever signed the location
     // record; see `identityMatch` in discoverTunnels.
     getText(`${base}/~meta@1.0/info/address`, timeoutMs, signal),
@@ -287,22 +285,15 @@ export async function probeTunnel(url, { timeoutMs = 8000, signal } = {}) {
   if (!Number.isFinite(registrations) ||
       !await hasAdvertisedTunnelRequestHook(base, requestHooks, timeoutMs, signal)) return null;
 
-  const priced = Object.entries(rates ?? {})
-    .filter(([key, value]) => key !== "status" && Number(value) > 0)
-    .map(([key, value]) => [key, Number(value)]);
-
   return {
     peer: base,
     impl,
     address,
     registrations,
-    // An unreadable rate map says nothing about payment terms.
-    rates: Object.fromEntries(priced),
-    free: priced.length ? false : null,
   };
 }
 
-/** Discover live tunnel routers with their pins and prices.
+/** Discover live tunnel routers with their pins.
  *
  *  Probes run in bounded parallel: a discovery pass touches strangers' nodes,
  *  and firing a hundred requests at once is both slow through one browser
@@ -371,12 +362,6 @@ export async function discoverTunnels({
   };
 }
 
-/** Internal metering rates are not a price quote or settlement promise. */
-export function describePrice(tunnel) {
-  if (!tunnel || tunnel.free === null) return "price unavailable";
-  return `metered on ${Object.keys(tunnel.rates).join(", ")}; terms unverified`;
-}
-
 /** Shape a discovered router like a `presets.js` TUNNELS entry so the picker
  *  can render discovered and built-in routers through one code path. */
 export function asTunnelEntry(tunnel) {
@@ -388,15 +373,12 @@ export function asTunnelEntry(tunnel) {
   if (tunnel.identityMatch === false) warnings.push("record signed by another address");
   if (tunnel.expired) warnings.push("record expired");
   warnings.push("measurement not verified");
-  if (tunnel.free === null) warnings.push("price unavailable");
-  else if (!tunnel.free) warnings.push("payment terms unverified");
   return {
     id: `discovered:${host}`,
     name: host,
     peer: tunnel.peer,
     impl: tunnel.impl,
     registrations: tunnel.registrations,
-    free: tunnel.free,
     discovered: true,
     verified: false,
     note: warnings.join(" · "),

@@ -16,7 +16,7 @@ const inAndee = () => window.AndeeBridge?.isAndee?.() === true;
 
 // What each router said about itself when it was last probed, keyed by peer.
 // Built-in entries carry no description of their own, so this is where their
-// price and node count come from too -- a bootstrap router is not a router we
+// pin and node count come from too -- a bootstrap router is not a router we
 // know more about, only one we can reach before discovery has run.
 const liveTunnels = new Map();
 
@@ -30,7 +30,7 @@ const allTunnels = () => {
     // A live pin supersedes the bootstrap value; routers repin without notice.
     return live ? {
       ...tunnel, impl: live.impl ?? tunnel.impl, note: live.note,
-      registrations: live.registrations, free: live.free,
+      registrations: live.registrations,
     } : tunnel;
   });
   return [...builtins, ...discoveredTunnels];
@@ -422,9 +422,8 @@ function renderTunnelOptions(selectedId = el("tunnel-select").value || TUNNELS[0
       if (id === "custom") return "Enter another tunnel manually.";
       const tunnel = findTunnel(id);
       if (!Number.isFinite(tunnel?.registrations)) return tunnel?.note ?? "";
-      const access = tunnel.free === null ? "Price unknown" : "Metered";
       const connections = `${tunnel.registrations} connection${tunnel.registrations === 1 ? "" : "s"}`;
-      return [connections, access, tunnel.note]
+      return [connections, tunnel.note]
         .filter(Boolean).join(" · ");
     },
     onSync: (option) => { el("tunnel-selected-label").textContent = option?.textContent ?? "Other…"; },
@@ -434,17 +433,13 @@ function renderTunnelOptions(selectedId = el("tunnel-select").value || TUNNELS[0
 function renderTunnelStatus(tunnel) {
   const status = el("tunnel-status");
   const connections = el("tunnel-connections");
-  const paid = el("tunnel-paid");
   const hasCount = Number.isFinite(tunnel?.registrations);
   const count = hasCount ? tunnel.registrations : 0;
   connections.hidden = !hasCount;
   el("tunnel-connection-count").textContent = hasCount ? String(count) : "";
-  paid.hidden = tunnel?.free !== false;
-  status.hidden = !hasCount && paid.hidden;
-  status.setAttribute("aria-label", [
-    hasCount ? `${count} active tunnel connection${count === 1 ? "" : "s"}` : "",
-    paid.hidden ? "" : "Paid tunnel",
-  ].filter(Boolean).join(", "));
+  status.hidden = !hasCount;
+  status.setAttribute("aria-label",
+    hasCount ? `${count} active tunnel connection${count === 1 ? "" : "s"}` : "");
 
   const note = el("tunnel-note");
   note.textContent = tunnel?.note ?? "";
@@ -504,7 +499,7 @@ async function runTunnelDiscovery({ quiet = false } = {}) {
   try {
     const { candidates, tunnels, incomplete } = await discoverTunnels({ timeoutMs: 8000 });
     // A built-in router that also turns up in discovery is enriched, not
-    // duplicated: its live price and pin land in `liveTunnels` and it keeps its
+    // duplicated: its live pin and node count land in `liveTunnels` and it keeps its
     // own entry in the list.
     const known = new Set(TUNNELS.map((tunnel) => tunnel.peer.replace(/\/+$/, "")));
     for (const tunnel of tunnels) liveTunnels.set(tunnel.peer, asTunnelEntry(tunnel));
