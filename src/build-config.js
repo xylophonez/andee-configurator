@@ -55,7 +55,7 @@ export function capabilityById(id) {
 export function buildConfig(choices) {
   if (choices.layers?.includes("full") || choices.profile === "full") {
     if (choices.layers?.some((layer) => layer !== "full")) {
-      throw new Error("Full already includes the agent, tunnel and staked bundler. Select it on its own.");
+      throw new Error("Full already includes the agent, tunnel and bundler. Select it on its own.");
     }
     agentConfig(choices);
     const beneficiary = String(choices.beneficiary || "").trim() || choices.agentOwner;
@@ -88,7 +88,7 @@ export function buildConfig(choices) {
   }
   if (choices.layers?.includes("staked-bundler") || choices.profile === "staked-bundler") {
     if (choices.layers?.some((layer) => layer !== "staked-bundler")) {
-      throw new Error("Staked bundler already includes its required capabilities. Select it on its own.");
+      throw new Error("Tunnelled bundler already includes its required capabilities. Select it on its own.");
     }
     return sortKeys(withPackageIndex(buildStakedBundler(choices), choices.deployment));
   }
@@ -255,9 +255,9 @@ function withAgent(config, choices) {
 /** Compose paid bundling; ao-site selects and joins the zone during staking. */
 function buildStakedBundler(choices) {
   const d = choices.deployment;
-  if (!d || d.version !== 1) throw new Error("Staked bundler deployment is not available yet. Download is disabled until it is configured.");
+  if (!d || d.version !== 1) throw new Error("Bundler deployment is not available yet. Download is disabled until it is configured.");
   // Live upload testing is explicit; the zone's production policy is separate.
-  if (d.mode === "unavailable") throw new Error("Staked bundler release is awaiting verified device packages and tunnel settings. Download is disabled.");
+  if (d.mode === "unavailable") throw new Error("Bundler release is awaiting verified device packages and tunnel settings. Download is disabled.");
   if (!["lab", "live-test", "production"].includes(d.mode)) throw new Error("Unknown deployment mode.");
   const origin = (value, label, httpsOnly = false) => {
     try {

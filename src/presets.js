@@ -118,14 +118,14 @@ export const CAPABILITIES = [
   {
     id: "full",
     name: "Full",
-    blurb: "Your agent, free AI, optional ChatGPT connection, public URL and staked bundler, configured together.",
-    adds: ["Your agent and AI connections", "a tunnel", "paid bundling and staking setup"],
+    blurb: "Your agent, free AI, optional ChatGPT connection, public URL and bundler, configured together.",
+    adds: ["Your agent and AI connections", "a tunnel", "bundling"],
   },
   {
     id: "staked-bundler",
-    name: "Staked bundler",
-    blurb: "Paid bundling and a public URL. Join a zone on the AO staking page.",
-    adds: ["tunnel startup and public URL", "paid native v0.11 bundler", "your payout address"],
+    name: "Tunnelled bundler",
+    blurb: "Bundling and a public URL.",
+    adds: ["tunnel startup and public URL", "native v0.11 bundler", "your payout address"],
   },
   {
     id: "tunnel",
@@ -142,7 +142,7 @@ export const CAPABILITIES = [
   {
     id: "bundler",
     name: "Bundler",
-    blurb: "Accept and settle paid items through ~bundler@1.0.",
+    blurb: "Accept and settle items through ~bundler@1.0.",
     adds: ["on.start: P4 bootstrap", "bundler-* and payment settings", "router-opts and device pins"],
   },
   {
@@ -157,7 +157,7 @@ export const PROFILES = [
   {
     id: "full",
     name: "Full",
-    blurb: "Your agent, AI connections, a tunnel and staked bundling.",
+    blurb: "Your agent, AI connections, a tunnel and bundling.",
     full: true,
   },
   {
@@ -188,7 +188,7 @@ export const PROFILES = [
   {
     id: "bundler",
     name: "Bundler",
-    blurb: "Paid-bundler profile behind a tunnel. Accepts items at ~bundler@1.0.",
+    blurb: "Bundler profile behind a tunnel. Accepts items at ~bundler@1.0.",
     tunnel: true,
     bundler: true,
   },
@@ -211,7 +211,7 @@ export const PROFILES = [
   {
     id: "ouroboros-bundler",
     name: "Ouroboros and bundler",
-    blurb: "Linux execution and the paid bundler, both behind one tunnel.",
+    blurb: "Linux execution and the bundler, both behind one tunnel.",
     tunnel: true,
     ouroboros: true,
     bundler: true,
