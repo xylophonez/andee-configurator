@@ -8,7 +8,8 @@
 // values, so offering them here would only mislead.
 
 // Known routers bootstrap the picker before discovery runs, with no network
-// and on a first load. Discovery can add other providers.
+// and on a first load. Only routers verified to serve new nodes belong here;
+// discovery and the provider URL field still reach any other provider.
 //
 // Deliberately no `note`. A hard-coded sentence about somebody else's tunnel is
 // a claim we cannot keep true: it describes behaviour that changes without us
@@ -24,18 +25,6 @@ export const TUNNELS = [
     id: "iloveao",
     name: "iloveao.online",
     peer: "https://iloveao.online",
-    impl: "",
-  },
-  {
-    id: "mystical",
-    name: "tunnel.mystical.computer",
-    peer: "https://tunnel.mystical.computer",
-    impl: "",
-  },
-  {
-    id: "smoke",
-    name: "smoke.solutions",
-    peer: "https://smoke.solutions",
     impl: "",
   },
 ];
