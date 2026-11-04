@@ -3,6 +3,9 @@
 // picker must keep that limit visible.
 
 const GATEWAY = "https://arweave.net";
+// The existing relay forwards the same public GraphQL query when the direct
+// index is unavailable to the browser. Both paths use the location protocol.
+const LOCATION_RELAY = "https://tunnel.mystical.computer/~relay@1.0/call?relay-path=https%3A%2F%2Farweave.net%2Fgraphql&relay-method=POST";
 
 // Legacy scheduler records use title-case tags; current location@1.0 records
 // use normalized lower-case tags. Read both while nodes transition.
@@ -99,6 +102,7 @@ async function getJSON(url, timeoutMs, signal) {
  *  or point at private hosts. */
 export async function locationRecords({
   gateway = GATEWAY,
+  graphqlEndpoint = `${gateway}/graphql`,
   limit = 100,
   maxPages = 5,
   timeoutMs = 15000,
@@ -122,7 +126,7 @@ export async function locationRecords({
     signal?.addEventListener("abort", onOuter, { once: true });
     let payload;
     try {
-      const res = await fetch(`${gateway}/graphql`, {
+      const res = await fetch(graphqlEndpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body,
@@ -311,7 +315,16 @@ export async function discoverTunnels({
       !Number.isInteger(concurrency) || concurrency < 1 || concurrency > 20) {
     throw new RangeError("Invalid tunnel probe bounds");
   }
-  const candidates = await locationRecords({ gateway, limit, maxPages, signal });
+  let candidates;
+  try {
+    candidates = await locationRecords({ gateway, limit, maxPages, signal });
+  } catch (error) {
+    if (gateway !== GATEWAY || signal?.aborted) throw error;
+    // Restart the bounded crawl on one endpoint so cursors are never mixed.
+    candidates = await locationRecords({
+      gateway, graphqlEndpoint: LOCATION_RELAY, limit, maxPages, signal,
+    });
+  }
   const probeCandidates = candidates.slice(0, maxProbes);
   const found = [];
   let cursor = 0;

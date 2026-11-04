@@ -457,3 +457,49 @@ test("RC4 bundled responses and scalar address wrappers need no forced tunnel pi
     assert.equal(probe.impl, null);
   });
 });
+
+
+test("default discovery falls back to the existing relay after an index rate limit", async () => {
+  const calls = [];
+  const route = stubFetch({
+    "/~relay@1.0/call": graphqlReply([{ url: "https://new-provider.example", address: "NEW", schema: "current" }]),
+    "/~tunnel@1.0/status": { "open-registrations": 0 },
+    "/~meta@1.0/info/on/request": routerHook,
+    "/~meta@1.0/info/address": "NEW",
+  });
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url: String(url), body: init?.body });
+    if (String(url) === "https://arweave.net/graphql") {
+      return new Response("Rate limit exceeded", { status: 429 });
+    }
+    return route(url, init);
+  };
+  try {
+    const result = await discoverTunnels({});
+    assert.equal(result.tunnels.length, 1);
+    assert.equal(result.tunnels[0].peer, "https://new-provider.example");
+    assert.equal(result.tunnels[0].identityMatch, true);
+    assert.equal(result.tunnels[0].registrations, 0);
+    const direct = calls.find((call) => call.url === "https://arweave.net/graphql");
+    const relay = calls.find((call) => call.url.includes("/~relay@1.0/call"));
+    assert.ok(relay);
+    assert.equal(relay.body, direct.body);
+    assert.equal(new URL(relay.url).searchParams.get("relay-path"), "https://arweave.net/graphql");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("an explicitly selected location index is not replaced by the default relay", async () => {
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    return new Response("Unavailable", { status: 503 });
+  };
+  try {
+    await assert.rejects(discoverTunnels({ gateway: "https://chosen-index.example" }), /registry query failed/);
+    assert.deepEqual(calls, ["https://chosen-index.example/graphql"]);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
