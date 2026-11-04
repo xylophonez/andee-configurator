@@ -6,7 +6,7 @@ This is the discovery contract for the AndEE Configurator. It uses the existing 
 
 The current producer signs an AO message with `data-protocol=ao`, `variant=ao.N.1`, `type=location`, `url`, `nonce`, `time-to-live`, and `codec-device`. Its signer is the node identity. The Arweave item ID and block timestamp identify the published copy. Older records use `Type=Location` or `Type=Scheduler-Location` and `Url`/`Time-To-Live` tags; a crawler should read both during migration.
 
-For a public tunnel listing, the URL must be an HTTPS endpoint reachable by an ordinary browser, with no credentials or private/local address. Configure `location-url` explicitly; do not let the node publish a localhost default. Set `location-ttl` explicitly **in milliseconds**, and republish before it expires. The producer contains both a millisecond fallback (`1000 * 60 * 60`) and a separate 28-day fallback expressed as seconds (`28 * 24 * 60 * 60`). This inconsistency needs a HyperBEAM fix and a producer/reader test before relying on defaults.
+For a public tunnel listing, the URL must be an HTTPS endpoint reachable by an ordinary browser, with no credentials or private/local address. Configure `location-url` explicitly; do not let the node publish a localhost default. Set `location-ttl` explicitly **in milliseconds**, and republish before it expires. Older builds used inconsistent fallback units. The provider profile sets 28 days explicitly as `2419200000` milliseconds; inspect the exact deployed build when reading older records.
 
 For each signer, a higher signed nonce supersedes an earlier record. Publication time helps sort GraphQL results but is not a substitute for nonce or signature validation. A signed record says where its signer claims to be; it says nothing about the endpoint's measurement, devices, uptime, or price. The current browser finder consumes GraphQL owner and tags as discovery data; it has **not** independently verified item bytes or AO signatures. An independently verified directory or client-side item verification is required for trusted admission.
 
@@ -33,3 +33,25 @@ The first public release can use a curated starter tunnel while these market-adm
 - A green check appears only for a current independent measurement verdict bound to the selected provider; removing or expiring that verdict removes the check.
 
 Source checks: pinned HyperBEAM `src/preloaded/node/dev_location.erl`; Gold PermawebOS `devices/common/src/security/dev_measurement.erl` and `arch/android/specs/andee-device-specification.md`; August 10 physical LapEE location item `9Be-civMMQJsXt85aS28zZey3cHqCWOwQm9-v36vudA`.
+
+## Provider boot default
+
+Use the current HyperBEAM [provider profile](https://github.com/permaweb/HyperBEAM/blob/edge/config/tunnel-provider.json)
+and [setup guide](https://github.com/permaweb/HyperBEAM/blob/edge/docs/run/tunnel-provider.md).
+It installs `tunnel@1.0/request` and a signed `location@1.0/node` startup hook,
+sets the public broker URL, uses ANS-104 publication and explicitly sets a
+28-day TTL in milliseconds. Provider recipes include that hook by default;
+`connect` configures an origin using a broker and is not a provider recipe.
+
+After boot and gateway indexing, **Find tunnels** queries the record and probes
+the broker. Zero registrations are valid for a new provider. The preloaded
+tunnel device does not require a remote implementation pin, and this finder
+accepts a missing `trusted-devices.tunnel@1.0` value. Its request-hook and
+identity checks still apply. Keep HTTPS/CORS and the scalar metadata paths
+available at the broker's public origin. The browser's bounded search can be
+incomplete, so failure to list is not proof that publication failed.
+
+A boot hook alone is not a perpetual renewal mechanism. Renew with fresh
+operator-signed controls before the TTL expires; an unsigned cached read or a
+replayed static signed cron request is not a renewal. Verify upload/indexing,
+not just the locally returned location record.

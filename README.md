@@ -190,3 +190,11 @@ Two traps worth knowing:
 - **Every module `app.js` imports must be in `FILES`.** A manifest missing one
   entry fails as a blank page, not a 404, because the module graph cannot
   resolve. `theme.js` and `andee-phone.js` were missing until 2026-08-06.
+
+## Run a discoverable provider
+
+The tunnel picker configures clients. For a public broker, use HyperBEAM's
+[provider profile and boot-publication guide](https://github.com/permaweb/HyperBEAM/blob/edge/docs/run/tunnel-provider.md).
+Publication is included in that role by default. See the [discovery contract](docs/location-and-tunnel-discovery.md#provider-boot-default)
+for indexing, request-hook and identity checks. A new provider can be listed
+with zero registrations and without a remote pin for the preloaded tunnel.
