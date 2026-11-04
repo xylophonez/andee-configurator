@@ -28,9 +28,14 @@ Missing device pins also disable saving; local test manifests cannot be publishe
 npm run serve   # http://127.0.0.1:5482/
 npm test        # node:test suite
 npm run check   # syntax check
+npm run build   # self-contained publication in dist/
 ```
 
-No build step. It is plain ES modules and one stylesheet.
+Development serves plain ES modules and one stylesheet. Publication bundles the
+startup JavaScript, CSS and release deployment into the HTML, so gateway request
+limits cannot interrupt the module graph. `deploy.mjs` builds this output before
+uploading it. The separate assets and `deployment.json` remain in the manifest
+for existing clients.
 
 ## Staked bundler candidate
 

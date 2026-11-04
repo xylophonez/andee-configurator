@@ -10,30 +10,17 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import * as arbundles from 'arbundles';
 import { buildConfig } from './src/build-config.js';
+import { ASSETS, buildSite } from './build.mjs';
 
 const BUNDLER = 'https://bundler.mystical.computer/~bundler@1.0/tx';
 const WALLET = process.env.ANDEE_DEPLOY_WALLET;
 
-// Paths are relative to the repo root and become the manifest's paths.
-// Every module app.js pulls in must be here: a manifest missing one entry
-// leaves the page loading a module graph that cannot resolve, which fails
-// silently as a blank configurator rather than a 404 anyone would notice.
-const FILES = [
-  ['index.html', 'text/html'],
-  ['styles.css', 'text/css'],
-  ['src/app.js', 'text/javascript'],
-  ['src/build-config.js', 'text/javascript'],
-  ['src/agent-config.js', 'text/javascript'],
-  ['src/provider-config.js', 'text/javascript'],
-  ['src/presets.js', 'text/javascript'],
-  ['src/theme.js', 'text/javascript'],
-  ['src/andee-phone.js', 'text/javascript'],
-  ['src/tunnel-discovery.js', 'text/javascript'],
-  ['deployment.json', 'application/json'],
-];
+// The HTML contains its startup JS, CSS and deployment settings. Keep the
+// individual assets available for existing clients and deployment readers.
+await buildSite();
 
 // Check the complete static publication before signing or sending any item.
-const assets = FILES.map(([path, type]) => [path, type, readFileSync(new URL(path, import.meta.url))]);
+const assets = ASSETS.map(([path, type]) => [path, type, readFileSync(new URL(`dist/${path}`, import.meta.url))]);
 const deployment = JSON.parse(assets.find(([path]) => path === 'deployment.json')[2]);
 if (deployment.mode !== 'production') throw new Error('Public publication requires a verified production deployment; test and unavailable manifests cannot be published.');
 for (const endpoint of [deployment.gateway, deployment.tunnel?.peer]) {

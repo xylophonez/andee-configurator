@@ -724,9 +724,15 @@ function currentChoices() {
 
 async function loadDeployment() {
   try {
-    const response = await fetch("./deployment.json", { cache: "no-store", signal: AbortSignal.timeout(5000) });
-    if (!response.ok) throw new Error("Deployment unavailable");
-    const deployment = await response.json();
+    const embedded = el("release-deployment");
+    let deployment;
+    if (embedded) {
+      deployment = JSON.parse(embedded.textContent);
+    } else {
+      const response = await fetch("./deployment.json", { cache: "no-store", signal: AbortSignal.timeout(5000) });
+      if (!response.ok) throw new Error("Deployment unavailable");
+      deployment = await response.json();
+    }
     const peer = new URL(normalizePeer(deployment.tunnel?.peer));
     if (peer.protocol !== "https:" || peer.username || peer.password || peer.search || peer.hash ||
         !["", "/"].includes(peer.pathname)) throw new Error("Invalid release tunnel");
