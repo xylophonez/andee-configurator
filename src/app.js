@@ -1,9 +1,8 @@
-import { buildConfig, capabilityById, strippedKeys } from "./build-config.js";
+import { buildConfig, capabilityById, normalizePeer, strippedKeys } from "./build-config.js";
 import {
   CAPABILITIES,
   TUNNELS,
   TUNNEL_IMPL,
-  TUNNEL_PEER,
   ZONES,
 } from "./presets.js";
 import { initTheme } from "./theme.js";
@@ -46,6 +45,7 @@ const state = {
   deployment: null,
   zoneMode: "join",
   advanced: false,
+  tunnelEdited: false,
 };
 
 const CAPABILITY_ICONS = {
@@ -375,14 +375,14 @@ function moveLayerAround(sourceId, targetId, after = false) {
 
 function boot() {
   renderCapabilities();
-  el("tunnel-peer").value = TUNNEL_PEER;
+  el("tunnel-peer").value = "";
   // Bazar opens four gateway reads during bootstrap. Keep enough listeners for
   // that burst plus ordinary background traffic; routers reject excess work
   // rather than queueing it.
   el("tunnel-workers").value = "8";
   el("tunnel-impl").value = TUNNEL_IMPL;
   el("max-items").value = "1000";
-  renderTunnelOptions();
+  renderTunnelOptions("custom");
   renderZoneOptions();
   bindEvents();
   applyLayers();
@@ -616,6 +616,7 @@ function bindEvents() {
     draggedLayerId = null;
   });
   el("tunnel-select").addEventListener("change", (event) => {
+    state.tunnelEdited = true;
     if (event.target.value !== "custom") selectTunnel(event.target.value);
     else renderTunnelStatus(null);
     render();
@@ -637,7 +638,10 @@ function bindEvents() {
   ]) {
     el(id).addEventListener("input", (event) => {
       syncNumberStepper(event.target);
-      if (event.target.id === "tunnel-peer") syncTunnelPickerFromPeer();
+      if (event.target.id === "tunnel-peer") {
+        state.tunnelEdited = true;
+        syncTunnelPickerFromPeer();
+      }
       if (event.target.id === "inference-provider") {
         el("inference-key-fields").hidden = !event.target.value || event.target.value === "apus";
         el("inference-free-note").hidden = event.target.value !== "apus";
@@ -723,9 +727,18 @@ async function loadDeployment() {
     const response = await fetch("./deployment.json", { cache: "no-store", signal: AbortSignal.timeout(5000) });
     if (!response.ok) throw new Error("Deployment unavailable");
     const deployment = await response.json();
+    const peer = new URL(normalizePeer(deployment.tunnel?.peer));
+    if (peer.protocol !== "https:" || peer.username || peer.password || peer.search || peer.hash ||
+        !["", "/"].includes(peer.pathname)) throw new Error("Invalid release tunnel");
     // render() validates the deployment together with the user's payout address
     // before enabling a download.
     state.deployment = deployment;
+    if (!state.tunnelEdited) {
+      el("tunnel-peer").value = peer.origin;
+      syncTunnelPickerFromPeer();
+      renderTunnelStatus(findTunnelByPeer(peer.origin));
+      refreshSelectedTunnel();
+    }
     el("deployment-status").textContent = deployment.mode === "unavailable"
       ? "This package release is not available yet. Configuration can be saved once it is ready."
       : deployment.mode === "production"
