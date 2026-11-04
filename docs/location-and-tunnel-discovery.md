@@ -36,14 +36,14 @@ Source checks: pinned HyperBEAM `src/preloaded/node/dev_location.erl`; Gold Perm
 
 ## Provider boot default
 
-Use the current HyperBEAM [provider profile](https://github.com/permaweb/HyperBEAM/blob/edge/config/tunnel-provider.json)
-and [setup guide](https://github.com/permaweb/HyperBEAM/blob/edge/docs/run/tunnel-provider.md).
+Use the current HyperBEAM [provider profile](https://permawebos.arweave.net/configs/tunnel-provider.json)
+and [setup guide](https://permawebos.arweave.net/#/run/docs/tunnel-providers).
 It installs `tunnel@1.0/request` and a signed `location@1.0/node` startup hook,
 sets the public broker URL, uses ANS-104 publication and explicitly sets a
 28-day TTL in milliseconds. Provider recipes include that hook by default;
 `connect` configures an origin using a broker and is not a provider recipe.
 
-After boot and gateway indexing, **Find tunnels** queries the record and probes
+After boot and gateway indexing, **Scan for alternative tunnels** queries the record and probes
 the broker. Zero registrations are valid for a new provider. The preloaded
 tunnel device does not require a remote implementation pin, and this finder
 accepts a missing `trusted-devices.tunnel@1.0` value. Its request-hook and
@@ -55,3 +55,11 @@ A boot hook alone is not a perpetual renewal mechanism. Renew with fresh
 operator-signed controls before the TTL expires; an unsigned cached read or a
 replayed static signed cron request is not a renewal. Verify upload/indexing,
 not just the locally returned location record.
+
+The default reader first queries Arweave directly. If that request fails, it
+restarts the same bounded crawl through Mystical's existing `relay@1.0` call,
+with a fixed `relay-path` to `https://arweave.net/graphql` and `relay-method=POST`.
+This is the same location index and JSON query, not a second provider list.
+Cursors are never mixed between endpoints. An explicit caller-selected index
+is respected, and cancellation does not start the fallback. Live probes still
+check provider role and identity before offering the result.

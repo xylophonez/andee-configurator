@@ -160,7 +160,7 @@ that one opens a raw node image, finds the FAT EFI partition and patches
 patch — the node imports a JSON — so the FAT/GPT reader and the wifi editor are
 gone.
 
-## Deploying and the Android pin
+## Deploying through the Configurator reference
 
 Run `npm ci` to install the pinned publishing dependency. Set
 `ANDEE_DEPLOY_WALLET` explicitly to the approved publishing wallet and
@@ -170,16 +170,15 @@ public deployment without signing or uploading.
 
 `deploy.mjs` signs and uploads each static asset, including `deployment.json`, through a bundler, then
 uploads an Arweave path manifest. Every publication gets a new immutable
-manifest ID. Android's Configure button opens `ConfiguratorActivity` at
-`https://arweave.net/Pa3OuFqmwvueGE0ROLMofBVeCQX4NOseP1CMLKLn9qs/`, so
-local source changes do not alter the page already installed on a phone.
+manifest ID. Android's Configure button resolves the Configurator reference
+`E0qFoi-3mz2eK7Xpscj2TpO_S1_FbQczmvt5xA0SpDk` and opens its current manifest.
+The reference authority is `kaYP9bJtpqON8Kyy3RbqnqdtDBDUsPTQTNUCvZtKiFI`.
 
-After reviewing and authorizing a new publication, publish the static assets,
-verify the new manifest and all module paths, update Android's
-`CONFIGURATOR_URL` to that manifest ID, rebuild the app, and test the published
-page in both a standalone browser and AndEE's Configure → Apply to AndEE →
-Apply & close → reopen flow. See [the 2026-10-28 release evidence](review/full-release-20261028.md)
-for the published device set, validation and installed APK.
+Publish and verify the complete static manifest, then publish an authority-signed
+`reference@1.0` update to that manifest. Read the reference back and test its
+`index.html`, modules and `deployment.json`, including the standalone browser
+and AndEE Configure flow. Existing apps receive the new Configurator through
+that reference; this release does not require a new APK just to change the page.
 
 Two traps worth knowing:
 
@@ -194,7 +193,7 @@ Two traps worth knowing:
 ## Run a discoverable provider
 
 The tunnel picker configures clients. For a public broker, use HyperBEAM's
-[provider profile and boot-publication guide](https://github.com/permaweb/HyperBEAM/blob/edge/docs/run/tunnel-provider.md).
+[provider profile and boot-publication guide](https://permawebos.arweave.net/#/run/docs/tunnel-providers).
 Publication is included in that role by default. See the [discovery contract](docs/location-and-tunnel-discovery.md#provider-boot-default)
 for indexing, request-hook and identity checks. A new provider can be listed
 with zero registrations and without a remote pin for the preloaded tunnel.
