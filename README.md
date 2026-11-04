@@ -76,7 +76,7 @@ rejoin policy.
 The profiles below are retained legacy presets; they do not describe this
 v0.11 Staked bundler preset.
 
-Tunnel provider setup is documented in the [PermawebOS tunnels guide](https://lapee.hyperbeam.online/#/run/docs/tunnels). The LapEE operator example is `sample-configs/lapee-tunnel-provider.json` in `arweave://lapee`. The Configurator builds client configs; it does not package provider files.
+To run a public provider, follow [Run your own HyperBEAM tunnel](https://permawebos.arweave.net/#/run/docs/tunnel-providers) and use its [default provider config](https://permawebos.arweave.net/configs/tunnel-provider.json). It publishes a signed location on boot for the Configurator's scan. The Configurator builds client configs; it does not package provider files.
 
 ## What it produces
 
@@ -191,9 +191,10 @@ Two traps worth knowing:
   subdomain. Without `-L` you get a 748-byte CDN error page and will conclude
   a perfectly healthy deploy is dead. That misdiagnosis has already happened
   once.
-- **Every module `app.js` imports must be in `FILES`.** A manifest missing one
-  entry fails as a blank page, not a 404, because the module graph cannot
-  resolve. `theme.js` and `andee-phone.js` were missing until 2026-08-06.
+- **Publish the built output.** `deploy.mjs` uses `build.mjs` to inline startup
+  code, styles and deployment settings, and publishes the `ASSETS` list for
+  existing clients. Serving only the source module graph adds gateway requests
+  that can be rate-limited before the page initializes.
 
 ## Run a discoverable provider
 
