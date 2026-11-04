@@ -433,11 +433,25 @@ main {
   color: var(--paper);
 }
 
-.advanced-toggle.custom-select__action {
-  width: 100%;
-  margin-top: 0.35rem;
-  padding: 0.7rem 0.8rem 0.45rem;
-  border-top: 1px solid var(--neutral-4);
+.tunnel-discovery {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem 1rem;
+  margin: 0 0 1.25rem;
+}
+
+.tunnel-discovery .button {
+  flex: 0 0 auto;
+  padding: 0.65rem 0.9rem;
+}
+
+.tunnel-discovery p {
+  flex: 1 1 14rem;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 
 .advanced-toggle__switch {

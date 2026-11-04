@@ -113,6 +113,10 @@
               <p>Connect from anywhere through a tunnel. After applying, reopen PermawebOS to see and share your node’s public URL.</p>
             </div>
           </div>
+          <div class="tunnel-discovery">
+            <button id="tunnel-discover" class="button button--secondary" type="button" aria-describedby="tunnel-scan-help">Scan for alternative tunnels</button>
+            <p id="tunnel-scan-help">Find public providers on the network, then choose one below.</p>
+          </div>
           <div class="field-list">
             <div class="stacked-field">
               <span>Tunnel</span>
@@ -124,7 +128,6 @@
                 </button>
                 <div class="custom-select__menu" id="tunnel-menu" hidden>
                   <div id="tunnel-options" role="listbox" aria-label="Tunnels"></div>
-                  <button id="tunnel-discover" class="advanced-toggle custom-select__action" type="button">Find tunnels</button>
                 </div>
                 <select id="tunnel-select" class="native-select" aria-hidden="true" tabindex="-1" hidden></select>
               </div>
@@ -139,7 +142,7 @@
               </span>
             </div>
             <p class="inline-note" id="tunnel-note" hidden></p>
-            <p class="inline-note" id="tunnel-discover-note" hidden></p>
+            <p class="inline-note" id="tunnel-discover-note" role="status" aria-live="polite" hidden></p>
             <div class="field-row field-row--compact">
               <span>Workers</span>
               <span class="number-stepper">

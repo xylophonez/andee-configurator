@@ -387,11 +387,6 @@ function boot() {
   bindEvents();
   applyLayers();
   loadDeployment();
-  // Discover in the background. The picker is already usable at this point --
-  // the bootstrap router is rendered and selected -- so this only ever adds to
-  // it. Failure is silent by design: a page that cannot reach a gateway should
-  // still configure a node against the router it already has.
-  runTunnelDiscovery({ quiet: true });
   refreshSelectedTunnel();
 }
 
@@ -477,14 +472,11 @@ function syncTunnelPickerFromPeer() {
 async function refreshSelectedTunnel() {
   const peer = el("tunnel-peer").value.trim();
   if (!/^https?:\/\//i.test(peer)) return;
-  const note = el("tunnel-discover-note");
   const probe = await probeTunnel(peer, { timeoutMs: 8000 });
   if (!probe || el("tunnel-peer").value.trim() !== peer) return;
   const live = asTunnelEntry(probe);
   liveTunnels.set(probe.peer.replace(/\/+$/, ""), live);
   renderTunnelStatus(live);
-  note.textContent = "";
-  note.hidden = true;
 }
 
 async function runTunnelDiscovery({ quiet = false } = {}) {
@@ -508,26 +500,23 @@ async function runTunnelDiscovery({ quiet = false } = {}) {
       .map(asTunnelEntry);
     const current = el("tunnel-select").value;
     renderTunnelOptions(current);
-    // On the background pass say nothing unless something was found -- an
-    // empty registry is the normal state today and is not news on page load.
-    if (incomplete) {
-      note.hidden = false;
-      note.textContent = `Showing recent candidates from ${candidates} location records. Search is incomplete.`;
-    } else if (!tunnels.length && !quiet) {
-      note.hidden = false;
-      note.textContent = "No tunnels found.";
-    } else {
-      note.textContent = "";
-      note.hidden = true;
+    note.hidden = false;
+    const count = `${tunnels.length} tunnel provider${tunnels.length === 1 ? "" : "s"}`;
+    note.textContent = tunnels.length
+      ? `Found ${count}. Choose a provider from the Tunnel menu.`
+      : "No providers found in this scan. You can scan again or enter a provider URL.";
+    if (incomplete) note.textContent += " This scan covers recent location records.";
+    if (!quiet && tunnels.length && el("tunnel-menu").hidden) {
+      el("tunnel-trigger").click();
     }
   } catch (exc) {
     if (!quiet) {
       note.hidden = false;
-      note.textContent = `Could not search: ${exc?.message ?? exc}`;
+      note.textContent = "The scan could not finish. Try again shortly, or enter a provider URL.";
     }
   } finally {
     button.disabled = false;
-    button.textContent = "Find tunnels";
+    button.textContent = "Scan for alternative tunnels";
   }
 }
 
