@@ -69,6 +69,7 @@ function unroutable(url) {
 /** Fetch with a deadline. A discovery pass must not hang on one dead node, and
  *  many published locations are stale, private or plain unreachable. */
 async function getJSON(url, timeoutMs, signal) {
+  if (signal?.aborted) return null;
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), timeoutMs);
   const onOuter = () => abort.abort();
@@ -206,6 +207,7 @@ export async function locationRecords({
 /** Fetch a single scalar as text. Used where a whole map cannot be requested
  *  because its keys would become illegal header names. */
 async function getText(url, timeoutMs, signal) {
+  if (signal?.aborted) return null;
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), timeoutMs);
   const onOuter = () => abort.abort();

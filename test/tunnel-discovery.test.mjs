@@ -471,3 +471,33 @@ test("a rate-limited location index fails without contacting an alternative serv
     globalThis.fetch = realFetch;
   }
 });
+
+test("cancellation between initial probes and linked hooks starts no further requests", async () => {
+  const controller = new AbortController();
+  let linkedRequests = 0;
+  await withFetch({
+    "/~tunnel@1.0/status": { "open-registrations": 0 },
+    "/~meta@1.0/info/on/request/1": () => {
+      linkedRequests++;
+      return routerHook;
+    },
+    "/~meta@1.0/info/on/request": { "1+link": "opaque-tunnel-hook" },
+    "/~meta@1.0/info/address": () => {
+      controller.abort();
+      return "NODE";
+    },
+  }, async () => {
+    assert.equal(await probeTunnel("https://provider.example", { signal: controller.signal }), null);
+    assert.equal(linkedRequests, 0);
+  });
+});
+
+test("an already cancelled probe does not start any scalar or JSON requests", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  let requests = 0;
+  await withFetch({ "/": () => { requests++; return {}; } }, async () => {
+    assert.equal(await probeTunnel("https://provider.example", { signal: controller.signal }), null);
+    assert.equal(requests, 0);
+  });
+});
