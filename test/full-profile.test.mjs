@@ -71,7 +71,8 @@ test("the owner exemption uses the same normalized addresses as the node configu
 
 test("Full resolves the released pricing devices by version and canonical aliases", () => {
   const config = buildConfig(choices);
-  for (const [name, alias] of [["lapee-p4-bootstrap@1.13", "lapee-p4-bootstrap@1.0"],
+  for (const [name, alias] of [["ao-payment@1.12", "ao-payment@1.0"],
+    ["lapee-p4-bootstrap@1.14", "lapee-p4-bootstrap@1.0"],
     ["pricing-router@1.1", "pricing-router@1.0"]]) {
     const pin = deployment.payments.devices[name];
     assert.equal(config["name-resolvers"][0][name], pin.spec);

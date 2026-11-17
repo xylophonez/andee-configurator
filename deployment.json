@@ -7,9 +7,9 @@
   },
   "payments": {
     "devices": {
-      "ao-payment@1.11": {
-        "spec": "9jhvwDGcaAlQJAjMsxVm8pFvoS4kpD7cinz0L4r-Vn0",
-        "implementation": "tnn8e_CoDFdKxllIfr3UtfWofTuJFwMMLOBvYV_pZqw"
+      "ao-payment@1.12": {
+        "spec": "5lQGhxz0_BmfwbfvSecww96BFJdCp5Bh2Fm9MGBaZMA",
+        "implementation": "dwWCoUHQAOP7nOvc3uvf19mHJVF8-4xOy8H0UuAhYCw"
       },
       "arweave-byte-pricing@1.11": {
         "spec": "jqDxdEEIAbFkDLzh1S54ONVdnxH9OMWEraBZJ0LmzDk",
@@ -23,9 +23,9 @@
         "spec": "YZGvdwFCmDUKonMmzm68wB2CYOFWalwyOmuRVwY7TGU",
         "implementation": "XW9Ou-scm-HQoKVz9P038Mc6MtCVdrPcY01dvStNVLQ"
       },
-      "lapee-p4-bootstrap@1.13": {
-        "spec": "ca7JF1lEZQO8L_if_QhM2bK_aibRTdDm7ktBSl7UQYM",
-        "implementation": "BcnzCY4CoT9b2qGqQF1HTbRjZfIeFMmP9vZjlj5nVTM"
+      "lapee-p4-bootstrap@1.14": {
+        "spec": "pzNrXkkphc_wtgR3bxIrioySSogWF615IaFYcYzQpsI",
+        "implementation": "mxrtn7ThFXtSLVMCwTpfGhB6X_Qh74asVdQW4aISluY"
       }
     },
     "reservationAmount": 10000000000,
@@ -68,6 +68,7 @@
   "packageBlocks": {
     "-Bo3UQRlNM6KGiNiQNMVhSPaiz8mmLPsTVuxgSGw6Ac": 2031562,
     "1SueGAiqQ5LC5HwBe7QDR3sNF0eeW8tuUAD8HbBgnA8": 2030648,
+    "5lQGhxz0_BmfwbfvSecww96BFJdCp5Bh2Fm9MGBaZMA": 2044172,
     "7PTjB4DqOZLPIGHZkN_aGE9mcvGMLrwwjQQrqe3CBqc": 2030648,
     "9jhvwDGcaAlQJAjMsxVm8pFvoS4kpD7cinz0L4r-Vn0": 2030648,
     "BcnzCY4CoT9b2qGqQF1HTbRjZfIeFMmP9vZjlj5nVTM": 2031562,
@@ -82,6 +83,7 @@
     "YZGvdwFCmDUKonMmzm68wB2CYOFWalwyOmuRVwY7TGU": 2025980,
     "ZKN4ltYtsSF1I6RMH0tO0pJCbfX84Q04xCgJMPdertQ": 2030648,
     "ca7JF1lEZQO8L_if_QhM2bK_aibRTdDm7ktBSl7UQYM": 2031562,
+    "dwWCoUHQAOP7nOvc3uvf19mHJVF8-4xOy8H0UuAhYCw": 2044172,
     "el1Vg6QfEs2X_BTb7PV3Y3IcBVCa_0_Tte1qoR9p6Yo": 2031295,
     "fyd2gGSh7cRF5jPqgKuzymATly6wutmsiZJNDzBO2Gg": 2031295,
     "fzOiFhy9jG4M7Dy4fql3OUmOTN9g6C5nTpUtMZWyHFM": 2031295,
@@ -89,7 +91,9 @@
     "jqDxdEEIAbFkDLzh1S54ONVdnxH9OMWEraBZJ0LmzDk": 2030648,
     "kLIMy5Wpw_Y5uzS3lnfq6ckhcYpDosL3TQYyenDSLg8": 2031295,
     "lSxFQKm5hZT6x0z16rR98bpPtSfN67EhTU7MfX7KNgM": 2031562,
+    "mxrtn7ThFXtSLVMCwTpfGhB6X_Qh74asVdQW4aISluY": 2044153,
     "oeJGtUCutNdfszNuwGs0r7VW_inRhuFl_nDYraIRWjk": 1940677,
+    "pzNrXkkphc_wtgR3bxIrioySSogWF615IaFYcYzQpsI": 2044153,
     "tnn8e_CoDFdKxllIfr3UtfWofTuJFwMMLOBvYV_pZqw": 2030648,
     "ueqbSsJBX2eUmFCUKPcpHa3mCWWGFuzeSNfe_8uVpWY": 2031295,
     "v_7VEZHunCQw8jmjIqmCZvSCQaBm1ygbwysyTmVmzpk": 2031295,
